@@ -1,0 +1,9 @@
+fastapi==0.95.2
+uvicorn[standard]==0.22.0
+httpx==0.23.3
+httpcore==0.15.0
+python-dotenv==1.0.0
+openai==1.30.0
+boto3==1.28.20
+azure-identity==1.14.0
+azure-mgmt-resource==23.0.0
