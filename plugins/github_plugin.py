@@ -1,58 +1,88 @@
-import os
+"""
+github_plugin.py
+Fetches incident-relevant GitHub data: commits, issues, workflow runs,
+deployments, and releases.  Used by data_loader.py to enrich the
+correlation engine with live repository signals.
+"""
+
 import asyncio
+import os
 from typing import Any, Dict
 
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 
+# Endpoints fetched in parallel for performance
+_ENDPOINTS = {
+    "commits":       "/commits?per_page={n}",
+    "issues":        "/issues?state=open&per_page={n}",
+    "workflows":     "/actions/workflows",
+    "workflow_runs": "/actions/runs?per_page={n}",
+    "deployments":   "/deployments?per_page={n}",
+    "releases":      "/releases?per_page={n}",
+}
 
-async def fetch(params: Dict[str, Any]):
-    """Fetch a rich set of GitHub data for a repo.
-    params: { owner: str, repo: str, per_page: int }
-    Returns dict with commits, issues, workflows, workflow_runs, deployments, releases.
+
+async def fetch(params: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Fetch a rich set of GitHub data for incident root-cause analysis.
+
+    params:
+      owner    (str, required) – GitHub org or user
+      repo     (str, required) – repository name
+      per_page (int, optional, default 10) – items per endpoint
+
+    Returns a dict with keys:
+      commits, issues, workflows, workflow_runs, deployments, releases
+    Each value is a list or an {"error": "..."} dict on partial failure.
     """
     owner = params.get("owner")
-    repo = params.get("repo")
+    repo  = params.get("repo")
     if not owner or not repo:
-        raise ValueError("owner and repo required")
+        raise ValueError("Both 'owner' and 'repo' are required parameters.")
+
     per_page = int(params.get("per_page", 10))
 
-    headers = {"Accept": "application/vnd.github+json"}
+    headers = {
+        "Accept":               "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
     if GITHUB_TOKEN:
-        headers["Authorization"] = f"token {GITHUB_TOKEN}"
+        headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
 
     try:
         import httpx
-    except Exception as e:
-        return {"error": f"httpx not available or failed to import: {e}. Install a compatible httpx/httpcore version."}
+    except ImportError as exc:
+        return {"error": f"httpx is not installed: {exc}"}
 
     base = f"https://api.github.com/repos/{owner}/{repo}"
+
+    async def _get(name: str, url: str) -> tuple:
+        try:
+            r = await client.get(url, headers=headers)
+            r.raise_for_status()
+            return name, r.json()
+        except httpx.HTTPStatusError as exc:
+            return name, {"error": f"HTTP {exc.response.status_code}: {exc.response.text[:300]}"}
+        except Exception as exc:
+            return name, {"error": str(exc)}
+
     async with httpx.AsyncClient(timeout=30) as client:
-        # prepare endpoint list
-        endpoints = {
-            "commits": f"{base}/commits?per_page={per_page}",
-            "issues": f"{base}/issues?per_page={per_page}",
-            "workflows": f"{base}/actions/workflows",
-            "workflow_runs": f"{base}/actions/runs?per_page={per_page}",
-            "deployments": f"{base}/deployments?per_page={per_page}",
-            "releases": f"{base}/releases?per_page={per_page}",
-        }
+        tasks = [
+            _get(name, base + path.format(n=per_page))
+            for name, path in _ENDPOINTS.items()
+        ]
+        results = await asyncio.gather(*tasks)
 
-        async def fetch_url(name, url):
-            try:
-                r = await client.get(url, headers=headers)
-                r.raise_for_status()
-                return name, r.json()
-            except httpx.HTTPStatusError as e:
-                return name, {"error": f"HTTP {e.response.status_code}: {e.response.text[:200]}"}
-            except Exception as e:
-                return name, {"error": str(e)}
+    data: Dict[str, Any] = dict(results)
 
-        tasks = [fetch_url(n, u) for n, u in endpoints.items()]
-        results = await asyncio.gather(*tasks, return_exceptions=False)
-        data = {k: v for k, v in results}
+    # Normalize: the workflow_runs endpoint wraps the list in a key
+    wr = data.get("workflow_runs")
+    if isinstance(wr, dict) and "workflow_runs" in wr:
+        data["workflow_runs"] = wr["workflow_runs"]
 
-        # normalize workflow_runs list if present
-        if isinstance(data.get("workflow_runs"), dict) and data["workflow_runs"].get("workflow_runs"):
-            data["workflow_runs"] = data["workflow_runs"]["workflow_runs"]
+    # Normalize: the workflows endpoint wraps the list in a key
+    wf = data.get("workflows")
+    if isinstance(wf, dict) and "workflows" in wf:
+        data["workflows"] = wf["workflows"]
 
-        return data
+    return data

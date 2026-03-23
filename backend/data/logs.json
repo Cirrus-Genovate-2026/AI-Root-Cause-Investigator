@@ -1,0 +1,146 @@
+[
+  {
+    "id": "log-001",
+    "timestamp": "2026-03-19T09:55:00Z",
+    "service": "checkout",
+    "level": "INFO",
+    "message": "Checkout service running on v2.1.2 — all health checks passing",
+    "host": "checkout-pod-1"
+  },
+  {
+    "id": "log-002",
+    "timestamp": "2026-03-19T09:58:00Z",
+    "service": "checkout",
+    "level": "INFO",
+    "message": "Rolling deployment initiated: v2.1.3 — new payment provider integration",
+    "host": "checkout-pod-1"
+  },
+  {
+    "id": "log-003",
+    "timestamp": "2026-03-19T10:02:00Z",
+    "service": "checkout",
+    "level": "INFO",
+    "message": "Deployment v2.1.3 applied — pod restart complete",
+    "host": "checkout-pod-1"
+  },
+  {
+    "id": "log-004",
+    "timestamp": "2026-03-19T10:05:12Z",
+    "service": "checkout",
+    "level": "WARN",
+    "message": "Increased latency detected: p99=850ms (threshold: 500ms)",
+    "host": "checkout-pod-1"
+  },
+  {
+    "id": "log-005",
+    "timestamp": "2026-03-19T10:06:30Z",
+    "service": "checkout",
+    "level": "WARN",
+    "message": "Database connection pool utilization at 78% (39/50 connections in use)",
+    "host": "checkout-pod-1"
+  },
+  {
+    "id": "log-006",
+    "timestamp": "2026-03-19T10:08:00Z",
+    "service": "checkout",
+    "level": "ERROR",
+    "message": "Database connection timeout after 5000ms — payment_db host=10.0.0.35:5432",
+    "host": "checkout-pod-1"
+  },
+  {
+    "id": "log-007",
+    "timestamp": "2026-03-19T10:08:45Z",
+    "service": "checkout",
+    "level": "ERROR",
+    "message": "Database connection timeout after 5000ms — payment_db host=10.0.0.35:5432",
+    "host": "checkout-pod-2"
+  },
+  {
+    "id": "log-008",
+    "timestamp": "2026-03-19T10:09:10Z",
+    "service": "checkout",
+    "level": "ERROR",
+    "message": "Connection pool exhausted: 50/50 connections in use. Request queued 3500ms",
+    "host": "checkout-pod-1"
+  },
+  {
+    "id": "log-009",
+    "timestamp": "2026-03-19T10:10:22Z",
+    "service": "checkout",
+    "level": "ERROR",
+    "message": "Payment processing failed: database connection refused — transaction rolled back",
+    "host": "checkout-pod-1"
+  },
+  {
+    "id": "log-010",
+    "timestamp": "2026-03-19T10:10:55Z",
+    "service": "checkout",
+    "level": "ERROR",
+    "message": "Payment processing failed: database connection refused — transaction rolled back",
+    "host": "checkout-pod-2"
+  },
+  {
+    "id": "log-011",
+    "timestamp": "2026-03-19T10:12:00Z",
+    "service": "checkout",
+    "level": "CRITICAL",
+    "message": "Circuit breaker OPEN — downstream payment-db unreachable for 120s. Blocking all checkout transactions.",
+    "host": "checkout-pod-1"
+  },
+  {
+    "id": "log-012",
+    "timestamp": "2026-03-19T10:13:30Z",
+    "service": "checkout",
+    "level": "ERROR",
+    "message": "50 requests failed in the last 60 seconds — error rate: 48.2%",
+    "host": "checkout-pod-1"
+  },
+  {
+    "id": "log-013",
+    "timestamp": "2026-03-19T10:15:00Z",
+    "service": "checkout",
+    "level": "CRITICAL",
+    "message": "Service health check FAILED — checkout endpoint /api/checkout returning 503",
+    "host": "checkout-pod-1"
+  },
+  {
+    "id": "log-014",
+    "timestamp": "2026-03-19T10:20:00Z",
+    "service": "checkout",
+    "level": "INFO",
+    "message": "Rollback initiated to v2.1.2 by on-call SRE",
+    "host": "checkout-pod-1"
+  },
+  {
+    "id": "log-015",
+    "timestamp": "2026-03-19T10:25:00Z",
+    "service": "checkout",
+    "level": "INFO",
+    "message": "Rollback to v2.1.2 complete — service health restored",
+    "host": "checkout-pod-1"
+  },
+  {
+    "id": "log-016",
+    "timestamp": "2026-03-19T08:00:00Z",
+    "service": "payment",
+    "level": "INFO",
+    "message": "Payment service healthy — processing transactions normally",
+    "host": "payment-pod-1"
+  },
+  {
+    "id": "log-017",
+    "timestamp": "2026-03-19T10:09:00Z",
+    "service": "payment",
+    "level": "ERROR",
+    "message": "Upstream checkout service sending malformed DB connection requests",
+    "host": "payment-pod-1"
+  },
+  {
+    "id": "log-018",
+    "timestamp": "2026-03-19T09:00:00Z",
+    "service": "auth",
+    "level": "INFO",
+    "message": "Auth service healthy — token validation working normally",
+    "host": "auth-pod-1"
+  }
+]

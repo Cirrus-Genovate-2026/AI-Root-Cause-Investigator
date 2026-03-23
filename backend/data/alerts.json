@@ -1,0 +1,98 @@
+[
+  {
+    "id": "alert-001",
+    "service": "checkout",
+    "name": "HighCPU",
+    "severity": "high",
+    "message": "CPU usage exceeded 80% threshold on checkout service — current: 91%",
+    "timestamp": "2026-03-19T10:11:00Z",
+    "value": 91,
+    "threshold": 80,
+    "unit": "percent",
+    "status": "firing"
+  },
+  {
+    "id": "alert-002",
+    "service": "checkout",
+    "name": "HighLatency",
+    "severity": "high",
+    "message": "P99 response time exceeded 1000ms SLO — current: 3200ms",
+    "timestamp": "2026-03-19T10:12:00Z",
+    "value": 3200,
+    "threshold": 1000,
+    "unit": "ms",
+    "status": "firing"
+  },
+  {
+    "id": "alert-003",
+    "service": "checkout",
+    "name": "ErrorRateCritical",
+    "severity": "critical",
+    "message": "HTTP error rate exceeded 10% — current: 48.2%. SLO breach.",
+    "timestamp": "2026-03-19T10:12:30Z",
+    "value": 48.2,
+    "threshold": 10,
+    "unit": "percent",
+    "status": "firing"
+  },
+  {
+    "id": "alert-004",
+    "service": "checkout",
+    "name": "ServiceDegraded",
+    "severity": "critical",
+    "message": "Checkout service health check failing — /api/checkout returning 503 Service Unavailable",
+    "timestamp": "2026-03-19T10:15:00Z",
+    "value": null,
+    "threshold": null,
+    "unit": null,
+    "status": "firing"
+  },
+  {
+    "id": "alert-005",
+    "service": "checkout",
+    "name": "DBConnectionPoolExhausted",
+    "severity": "critical",
+    "message": "Database connection pool fully exhausted: 50/50 connections in use — new requests being rejected",
+    "timestamp": "2026-03-19T10:09:30Z",
+    "value": 50,
+    "threshold": 50,
+    "unit": "connections",
+    "status": "firing"
+  },
+  {
+    "id": "alert-006",
+    "service": "checkout",
+    "name": "MemoryHigh",
+    "severity": "high",
+    "message": "Memory usage at 87% — approaching OOM threshold of 90%",
+    "timestamp": "2026-03-19T10:13:00Z",
+    "value": 87,
+    "threshold": 85,
+    "unit": "percent",
+    "status": "firing"
+  },
+  {
+    "id": "alert-007",
+    "service": "checkout",
+    "name": "HighCPU",
+    "severity": "info",
+    "message": "CPU usage returned to normal levels after rollback — current: 55%",
+    "timestamp": "2026-03-19T10:26:00Z",
+    "value": 55,
+    "threshold": 80,
+    "unit": "percent",
+    "status": "resolved"
+  },
+  {
+    "id": "alert-008",
+    "service": "checkout",
+    "name": "ErrorRateCritical",
+    "severity": "info",
+    "message": "Error rate back to normal after rollback — current: 0.4%",
+    "timestamp": "2026-03-19T10:27:00Z",
+    "value": 0.4,
+    "threshold": 10,
+    "unit": "percent",
+    "status": "resolved"
+  }
+]

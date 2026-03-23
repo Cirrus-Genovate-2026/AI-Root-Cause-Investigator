@@ -1,341 +1,630 @@
-<!doctype html>
-<html>
+﻿<!doctype html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>AI Root Cause Investigator</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <title>AI Incident Root Cause Investigator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-      :root{
-        --bg:#f6f9fc; --card:#ffffff; --muted:#6b7280; --accent:#2563eb; --accent-2:#7c3aed;
-        --radius:10px; --glass:rgba(255,255,255,0.6);
+      /* â”€â”€ Reset & tokens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      :root {
+        --bg:      #f0f4ff;
+        --card:    #ffffff;
+        --border:  #e2e8f0;
+        --muted:   #64748b;
+        --text:    #0f172a;
+        --accent:  #2563eb;
+        --accent2: #7c3aed;
+        --green:   #16a34a;
+        --yellow:  #ca8a04;
+        --red:     #dc2626;
+        --orange:  #ea580c;
+        --radius:  12px;
+        --shadow:  0 4px 20px rgba(15,23,42,.08);
       }
-      *{box-sizing:border-box}
-      body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial;color:#111827;background:linear-gradient(180deg,#eef2ff 0%, #f6f9fc 100%);margin:0;padding:32px}
-      .container{max-width:1100px;margin:0 auto}
-      header{display:flex;align-items:center;gap:16px;margin-bottom:20px}
-      .logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:20px}
-      h1{font-size:20px;margin:0}
-      p.lead{margin:4px 0 0;color:var(--muted);font-size:13px}
+      body {
+        font-family: Inter, system-ui, -apple-system, sans-serif;
+        color: var(--text);
+        background: linear-gradient(160deg, #eef2ff 0%, #f0f4ff 50%, #f8fafc 100%);
+        min-height: 100vh;
+      }
 
-      .grid{display:grid;grid-template-columns:1fr 420px;gap:18px}
-      .card{background:var(--card);border-radius:var(--radius);box-shadow:0 6px 18px rgba(15,23,42,0.06);padding:18px}
+      /* â”€â”€ Layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+      .app { display: grid; grid-template-rows: auto 1fr; min-height: 100vh; }
+      .topbar {
+        background: #fff;
+        border-bottom: 1px solid var(--border);
+        padding: 0 32px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        height: 60px;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        box-shadow: 0 1px 8px rgba(15,23,42,.06);
+      }
+      .logo {
+        width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0;
+        background: linear-gradient(135deg, var(--accent), var(--accent2));
+        display: flex; align-items: center; justify-content: center;
+        color: #fff; font-weight: 700; font-size: 14px; letter-spacing: -0.5px;
+      }
+      .topbar h1 { font-size: 15px; font-weight: 600; }
+      .topbar .sub { font-size: 12px; color: var(--muted); }
+      .topbar .spacer { flex: 1; }
+      #apiDot { width: 8px; height: 8px; border-radius: 50%; background: #94a3b8; }
+      #apiDot.ok { background: var(--green); }
+      #apiDot.err { background: var(--red); }
 
-      label{display:block;font-weight:600;margin-bottom:6px}
-      select,input,textarea{width:100%;padding:10px;border:1px solid #e6eef6;border-radius:8px;background:transparent}
-      .row{display:flex;gap:8px}
-      .row > *{flex:1}
+      .main { display: grid; grid-template-columns: 320px 1fr; gap: 0; max-height: calc(100vh - 60px); overflow: hidden; }
 
-      button{background:var(--accent);color:white;padding:10px 14px;border:0;border-radius:8px;cursor:pointer;font-weight:600}
-      button.secondary{background:#eef2ff;color:var(--accent);border:1px solid rgba(37,99,235,0.12)}
-      .small{font-size:13px;color:var(--muted)}
+      /* â”€â”€ Sidebar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+      .sidebar {
+        background: #fff;
+        border-right: 1px solid var(--border);
+        padding: 20px 16px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .sidebar-section h3 { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); margin-bottom: 10px; }
 
-      pre.json{background:#0f172a;color:#e6eef6;padding:12px;border-radius:8px;height:280px;overflow:auto;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace;font-size:13px}
+      /* â”€â”€ Content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+      .content { overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 20px; }
 
-      .plugin-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
-      .meta{font-size:13px;color:var(--muted)}
+      /* â”€â”€ Cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+      .card { background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); padding: 20px; box-shadow: var(--shadow); }
+      .card-title { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 14px; }
 
-      @media (max-width:980px){.grid{grid-template-columns:1fr;}.container{padding:16px}}
+      /* â”€â”€ Form controls â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+      label { display: block; font-size: 12px; font-weight: 500; color: var(--muted); margin-bottom: 4px; }
+      input, select, textarea {
+        width: 100%; padding: 9px 12px;
+        border: 1px solid var(--border); border-radius: 8px;
+        font: 13px/1.4 Inter, sans-serif; color: var(--text); background: #f8fafc;
+        transition: border-color .15s;
+        resize: vertical;
+      }
+      input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); background: #fff; }
+      .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+      .btn {
+        display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+        padding: 9px 18px; border: none; border-radius: 8px;
+        font: 600 13px Inter, sans-serif; cursor: pointer; transition: opacity .15s, transform .1s;
+      }
+      .btn:active { transform: scale(.97); }
+      .btn-primary { background: var(--accent); color: #fff; }
+      .btn-primary:hover { opacity: .9; }
+      .btn-ghost { background: #eef2ff; color: var(--accent); border: 1px solid #c7d7fd; }
+      .btn-ghost:hover { background: #e0e7ff; }
+      .btn-full { width: 100%; }
+      .btn[disabled] { opacity: .5; cursor: not-allowed; }
+
+      /* â”€â”€ Scenario chips â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+      .chip {
+        display: block; width: 100%; text-align: left;
+        padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px;
+        background: #f8fafc; font: 500 12px Inter, sans-serif; color: var(--text);
+        cursor: pointer; transition: border-color .15s, background .15s;
+        margin-bottom: 6px;
+      }
+      .chip:hover { border-color: var(--accent); background: #eef2ff; color: var(--accent); }
+      .chip .chip-title { font-weight: 600; font-size: 13px; }
+      .chip .chip-sub   { color: var(--muted); font-size: 11px; margin-top: 2px; }
+
+      /* â”€â”€ Spinner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+      .spinner {
+        display: inline-block; width: 16px; height: 16px; margin-right: 6px;
+        border: 2px solid rgba(255,255,255,.4); border-top-color: #fff;
+        border-radius: 50%; animation: spin .6s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      /* â”€â”€ AI explanation card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+      .ai-root-cause { font-size: 17px; font-weight: 600; line-height: 1.4; color: var(--text); margin-bottom: 12px; }
+      .confidence-bar-wrap { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+      .confidence-bar-bg { flex: 1; height: 8px; background: #e2e8f0; border-radius: 99px; overflow: hidden; }
+      .confidence-bar-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width .6s ease; }
+      .confidence-label { font-size: 13px; font-weight: 600; color: var(--accent); white-space: nowrap; }
+
+      .ai-section-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); margin: 14px 0 6px; }
+      .ai-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+      .ai-list li { font-size: 13px; padding-left: 18px; position: relative; line-height: 1.4; }
+      .ai-list li::before { content: "â€º"; position: absolute; left: 0; color: var(--accent); font-weight: 700; }
+
+      /* â”€â”€ Severity badges â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+      .badge {
+        display: inline-block; padding: 2px 8px; border-radius: 99px;
+        font: 600 10px Inter, sans-serif; text-transform: uppercase; letter-spacing: .5px;
+      }
+      .badge-critical { background: #fee2e2; color: var(--red); }
+      .badge-high     { background: #ffedd5; color: var(--orange); }
+      .badge-medium   { background: #fef9c3; color: var(--yellow); }
+      .badge-info, .badge-low { background: #f0f4ff; color: var(--accent); }
+      .badge-warning  { background: #fef3c7; color: var(--yellow); }
+      .badge-success  { background: #dcfce7; color: var(--green); }
+
+      /* â”€â”€ Findings list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+      .finding {
+        border: 1px solid var(--border); border-radius: 10px; padding: 14px;
+        display: flex; align-items: flex-start; gap: 12px; margin-bottom: 10px;
+      }
+      .finding-rank { font-size: 11px; font-weight: 700; color: var(--muted); min-width: 22px; }
+      .finding-body { flex: 1; min-width: 0; }
+      .finding-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+      .finding-detail { font-size: 12px; color: var(--muted); line-height: 1.4; }
+      .finding-conf { font-size: 11px; font-weight: 600; color: var(--accent2); margin-top: 4px; }
+
+      /* â”€â”€ Timeline â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+      .timeline { display: flex; flex-direction: column; gap: 0; }
+      .tl-item { display: grid; grid-template-columns: 130px 20px 1fr; gap: 0 10px; min-height: 40px; }
+      .tl-time { font-size: 11px; color: var(--muted); text-align: right; padding-top: 3px; font-variant-numeric: tabular-nums; }
+      .tl-dot-col { display: flex; flex-direction: column; align-items: center; }
+      .tl-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+      .tl-dot.deployment { background: var(--accent); }
+      .tl-dot.alert      { background: var(--red); }
+      .tl-dot.log        { background: #94a3b8; }
+      .tl-dot.log.error  { background: var(--orange); }
+      .tl-line { flex: 1; width: 2px; background: var(--border); margin-top: 2px; }
+      .tl-body { padding-bottom: 16px; }
+      .tl-desc { font-size: 12px; line-height: 1.4; }
+
+      /* â”€â”€ Metrics grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+      .metrics-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+      .metric-tile { border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center; }
+      .metric-tile .m-name  { font-size: 11px; font-weight: 500; color: var(--muted); margin-bottom: 6px; }
+      .metric-tile .m-peak  { font-size: 22px; font-weight: 700; }
+      .metric-tile .m-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+      .metric-tile.danger .m-peak { color: var(--red); }
+      .metric-tile.warn   .m-peak { color: var(--orange); }
+      .metric-tile.ok     .m-peak { color: var(--green); }
+
+      /* â”€â”€ GitHub insights â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+      .gh-commit { font-size: 12px; padding: 7px 0; border-bottom: 1px solid var(--border); display: flex; gap: 8px; }
+      .gh-sha  { font-family: monospace; font-size: 11px; color: var(--accent); min-width: 56px; }
+      .gh-msg  { flex: 1; color: var(--text); }
+      .gh-author { color: var(--muted); font-size: 11px; min-width: 90px; text-align: right; }
+
+      /* â”€â”€ Section tabs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+      .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+      .tab { padding: 8px 16px; font: 600 12px Inter, sans-serif; cursor: pointer; border-bottom: 2px solid transparent; color: var(--muted); background: none; border-top: none; border-left: none; border-right: none; transition: color .15s; }
+      .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+      .tab-panel { display: none; }
+      .tab-panel.active { display: block; }
+
+      /* â”€â”€ Empty / loading states â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+      .empty { text-align: center; padding: 40px 20px; color: var(--muted); }
+      .empty svg { margin-bottom: 10px; opacity: .4; }
+      .empty p { font-size: 13px; }
+
+      /* â”€â”€ Provider pill â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+      .provider-pill { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; background: #f0f4ff; color: var(--accent); margin-left: 8px; vertical-align: middle; }
+
+      /* â”€â”€ Responsive â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+      @media (max-width: 900px) {
+        .main { grid-template-columns: 1fr; }
+        .sidebar { border-right: none; border-bottom: 1px solid var(--border); max-height: 280px; }
+      }
     </style>
   </head>
   <body>
-    <div class="container">
-      <header>
+    <div class="app">
+
+      <!-- â”€â”€ Top bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+      <header class="topbar">
         <div class="logo">AI</div>
         <div>
-          <h1>AI Root Cause Investigator</h1>
-          <p class="lead">Collect data from plugins, analyze with AI, and get a concise root-cause explanation.</p>
+          <div class="topbar h1" style="font-size:15px;font-weight:600">AI Incident Root Cause Investigator</div>
+          <div class="sub">Correlates logs Â· metrics Â· deployments Â· GitHub to find root cause</div>
         </div>
+        <div class="spacer"></div>
+        <div id="apiDot" title="API status"></div>
+        <span id="apiStatus" style="font-size:12px;color:var(--muted)">checkingâ€¦</span>
       </header>
 
-      <div class="layout" style="display:grid;grid-template-columns:220px 1fr 360px;gap:18px">
-        <!-- Sidebar -->
-        <nav class="card" style="padding:12px;">
-          <h3 style="margin-top:0">Navigation</h3>
-          <ul style="list-style:none;padding:0;margin:8px 0;display:flex;flex-direction:column;gap:8px">
-            <li><button class="secondary" id="nav-home" style="width:100%;text-align:left">Home</button></li>
-            <li><button class="secondary" id="nav-ai" style="width:100%;text-align:left">AI Assistance</button></li>
-            <li><button class="secondary" id="nav-catalog" style="width:100%;text-align:left">Catalog Data</button></li>
-          </ul>
+      <div class="main">
 
-          <div id="catalogList" style="margin-top:12px"></div>
-        </nav>
+        <!-- â”€â”€ Sidebar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+        <aside class="sidebar">
 
-        <!-- Main content -->
-        <main>
-          <div class="card">
-            <div class="plugin-header">
+          <!-- Query input -->
+          <div class="sidebar-section">
+            <h3>Investigation Query</h3>
+            <div style="margin-bottom:10px">
+              <label for="query">What do you want to investigate?</label>
+              <textarea id="query" rows="3" placeholder="Why did the checkout service fail today?">Why did the checkout service fail today?</textarea>
+            </div>
+            <div style="margin-bottom:10px">
+              <label for="service">Service (auto-detected or override)</label>
+              <select id="service">
+                <option value="">Auto-detect from query</option>
+                <option value="checkout" selected>checkout</option>
+                <option value="payment">payment</option>
+                <option value="auth">auth</option>
+                <option value="api-gateway">api-gateway</option>
+                <option value="notification">notification</option>
+                <option value="inventory">inventory</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- GitHub parameters -->
+          <div class="sidebar-section">
+            <h3>GitHub Source (optional)</h3>
+            <div class="row" style="margin-bottom:10px">
               <div>
-                <h3 style="margin:0">Plugins</h3>
-                <div class="small">Fetch live data from GitHub, Postman, AWS, Azure</div>
+                <label for="ghOwner">Owner / Org</label>
+                <input id="ghOwner" placeholder="e.g. microsoft">
               </div>
-              <div class="meta">Status: <strong id="status">ready</strong></div>
-            </div>
-
-            <div style="margin-top:12px;display:grid;gap:10px">
               <div>
-                <label for="plugin">Plugin</label>
-                <select id="plugin">
-                  <option value="github">GitHub</option>
-                  <option value="postman">Postman</option>
-                  <option value="aws">AWS</option>
-                  <option value="azure">Azure</option>
-                </select>
-              </div>
-
-              <div id="plugin-params">
-                <!-- dynamic params appear here -->
-                <div class="row">
-                  <div>
-                    <label>Owner</label>
-                    <input id="owner" placeholder="owner (e.g., octocat)">
-                  </div>
-                  <div>
-                    <label>Repo</label>
-                    <input id="repo" placeholder="repo name">
-                  </div>
-                </div>
-              </div>
-
-              <div style="display:flex;gap:8px;margin-top:6px">
-                <button id="fetch">Fetch Plugin Data</button>
-                <button id="clear" class="secondary">Clear</button>
-              </div>
-
-              <div style="margin-top:12px">
-                <label>Result</label>
-                <pre id="fetchResult" class="json">{}
-                </pre>
-                <div id="fetchPretty" style="margin-top:10px"></div>
+                <label for="ghRepo">Repository</label>
+                <input id="ghRepo" placeholder="e.g. vscode">
               </div>
             </div>
+            <p style="font-size:11px;color:var(--muted);line-height:1.5">
+              When filled, live GitHub commits, workflow runs and deployments are merged into the analysis.
+              Set <code>GITHUB_TOKEN</code> in <code>.env</code> to avoid rate limits.
+            </p>
           </div>
 
-          <div class="card" style="margin-top:14px">
-            <h3 style="margin:0 0 8px 0">AI Analyze</h3>
-            <div class="small">Ask a question and include plugin data for a contextual analysis.</div>
-            <div style="margin-top:10px">
-              <label>Question</label>
-              <textarea id="question" rows="4">Why did checkout service fail?</textarea>
-            </div>
-            <div style="display:flex;gap:8px;margin-top:10px">
-              <button id="analyze">Analyze</button>
-              <button id="analyze-quick" class="secondary">Analyze (Quick)</button>
-            </div>
-            <div style="margin-top:12px">
-              <label>Analysis</label>
-              <pre id="analysisResult" class="json">{}
-              </pre>
-            </div>
-          </div>
-        </main>
+          <!-- Analyze button -->
+          <button id="analyzeBtn" class="btn btn-primary btn-full">
+            Analyze Incident
+          </button>
 
-        <!-- Right column -->
-        <aside>
-          <div class="card">
-            <h3 style="margin-top:0">Quick Tips</h3>
-            <ul class="small">
-              <li>Set `GITHUB_TOKEN`, `OPENAI_API_KEY`, and other keys in your `.env`.</li>
-              <li>Use the GitHub plugin to include recent commits and issues in the analysis.</li>
-              <li>For heavy calls, run the server without `--reload` for better performance.</li>
-            </ul>
+          <!-- Quick scenarios -->
+          <div class="sidebar-section">
+            <h3>Demo Scenarios</h3>
+            <button class="chip" onclick="loadScenario('checkout')">
+              <div class="chip-title">Checkout Service Failure</div>
+              <div class="chip-sub">DB pool exhaustion after v2.1.3 deploy</div>
+            </button>
+            <button class="chip" onclick="loadScenario('payment')">
+              <div class="chip-title">Payment Timeout</div>
+              <div class="chip-sub">High latency on payment processing</div>
+            </button>
+            <button class="chip" onclick="loadScenario('auth')">
+              <div class="chip-title">Auth Service Issues</div>
+              <div class="chip-sub">Token validation failures</div>
+            </button>
           </div>
 
-          <div class="card" style="margin-top:14px">
-            <h4 style="margin:0">Live Status</h4>
-            <div style="margin-top:8px" class="small">API: <span id="apiStatus">unknown</span></div>
-            <div style="margin-top:10px"><button id="ping" class="secondary">Ping API</button></div>
-          </div>
         </aside>
-      </div>
 
-    </div>
+        <!-- â”€â”€ Main content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+        <main class="content">
+
+          <!-- Empty / initial state -->
+          <div id="emptyState" class="card empty">
+            <svg width="48" height="48" fill="none" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z" fill="currentColor"/></svg>
+            <p style="font-size:15px;font-weight:600;margin-bottom:6px">Ready to investigate</p>
+            <p>Enter a query on the left, or pick a demo scenario to get started.</p>
+          </div>
+
+          <!-- Results (hidden until analysis completes) -->
+          <div id="results" style="display:none;display:flex;flex-direction:column;gap:20px">
+
+            <!-- â”€â”€ AI Explanation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+            <div class="card" id="aiCard">
+              <div class="card-title">
+                AI Root Cause Explanation
+                <span id="providerPill" class="provider-pill"></span>
+              </div>
+              <div id="aiRootCause" class="ai-root-cause"></div>
+              <div class="confidence-bar-wrap">
+                <div class="confidence-bar-bg">
+                  <div id="confBar" class="confidence-bar-fill" style="width:0%"></div>
+                </div>
+                <span id="confLabel" class="confidence-label">0%</span>
+              </div>
+              <div class="ai-section-title">Supporting Evidence</div>
+              <ul id="aiEvidence" class="ai-list"></ul>
+              <div class="ai-section-title">Next Steps</div>
+              <ul id="aiNextSteps" class="ai-list"></ul>
+              <div class="ai-section-title">Prevention</div>
+              <ul id="aiPrevention" class="ai-list"></ul>
+            </div>
+
+            <!-- â”€â”€ Tabs for detail sections â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+            <div class="card" style="padding:0;overflow:hidden">
+              <div class="tabs" style="padding:0 20px">
+                <button class="tab active" onclick="switchTab('findings')">Findings</button>
+                <button class="tab" onclick="switchTab('timeline')">Timeline</button>
+                <button class="tab" onclick="switchTab('metrics')">Metrics</button>
+                <button class="tab" onclick="switchTab('github')">GitHub Insights</button>
+              </div>
+              <div style="padding:20px">
+
+                <!-- Findings panel -->
+                <div id="panel-findings" class="tab-panel active">
+                  <div id="findingsList"></div>
+                </div>
+
+                <!-- Timeline panel -->
+                <div id="panel-timeline" class="tab-panel">
+                  <div id="timelineList" class="timeline"></div>
+                </div>
+
+                <!-- Metrics panel -->
+                <div id="panel-metrics" class="tab-panel">
+                  <div id="metricsGrid" class="metrics-grid"></div>
+                </div>
+
+                <!-- GitHub panel -->
+                <div id="panel-github" class="tab-panel">
+                  <div id="githubContent"></div>
+                </div>
+
+              </div>
+            </div>
+
+          </div><!-- /results -->
+
+        </main>
+      </div><!-- /main -->
+    </div><!-- /app -->
 
     <script>
-      const pluginSelect = document.getElementById('plugin');
-      const pluginParams = document.getElementById('plugin-params');
-      const fetchBtn = document.getElementById('fetch');
-      const fetchResult = document.getElementById('fetchResult');
-      const analyzeBtn = document.getElementById('analyze');
-      const analysisResult = document.getElementById('analysisResult');
-      const ownerInput = document.getElementById('owner');
-      const repoInput = document.getElementById('repo');
-      const statusEl = document.getElementById('status');
-      const apiStatus = document.getElementById('apiStatus');
-      const pingBtn = document.getElementById('ping');
-      const catalogList = document.getElementById('catalogList');
-      const navCatalog = document.getElementById('nav-catalog');
+    /* â”€â”€ Utility â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    const $ = id => document.getElementById(id);
+    function esc(s) {
+      if (s == null) return '';
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+    function fmtTs(ts) {
+      if (!ts) return 'â€”';
+      try { return new Date(ts).toLocaleString('en-GB', { month:'short', day:'2-digit', hour:'2-digit', minute:'2-digit' }); }
+      catch { return ts.slice(0, 16).replace('T',' '); }
+    }
+    function fmtConfidence(c) {
+      // c may be 0..1 or 0..100
+      return c <= 1 ? Math.round(c * 100) : Math.round(c);
+    }
 
-      function showJSON(el, obj){
-        try{ el.textContent = JSON.stringify(obj, null, 2); }
-        catch(e){ el.textContent = String(obj); }
+    /* â”€â”€ Tab switching â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    function switchTab(name) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      event.target.classList.add('active');
+      $('panel-' + name).classList.add('active');
+    }
+
+    /* â”€â”€ Demo scenarios â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    const SCENARIOS = {
+      checkout: { query: 'Why did the checkout service fail today?', service: 'checkout' },
+      payment:  { query: 'What caused the payment service latency spike?', service: 'payment' },
+      auth:     { query: 'Why is the auth service returning token errors?', service: 'auth' },
+    };
+    function loadScenario(name) {
+      const s = SCENARIOS[name];
+      if (!s) return;
+      $('query').value = s.query;
+      $('service').value = s.service;
+    }
+
+    /* â”€â”€ Severity badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    function badge(sev) {
+      const s = (sev || 'info').toLowerCase();
+      return `<span class="badge badge-${s}">${esc(s)}</span>`;
+    }
+
+    /* â”€â”€ Render AI explanation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    function renderAI(llm, provider) {
+      const r = llm.llm_response || llm;
+      $('providerPill').textContent = provider || llm.provider || 'fallback';
+      $('aiRootCause').textContent = r.root_cause || 'â€”';
+
+      const conf = fmtConfidence(r.confidence_percent ?? 0);
+      $('confBar').style.width = conf + '%';
+      $('confLabel').textContent = conf + '%';
+
+      function renderList(elId, items) {
+        const ul = $(elId);
+        ul.innerHTML = '';
+        (items || []).forEach(t => {
+          const li = document.createElement('li');
+          li.textContent = t;
+          ul.appendChild(li);
+        });
+      }
+      renderList('aiEvidence',  r.supporting_evidence);
+      renderList('aiNextSteps', r.next_steps);
+      renderList('aiPrevention', r.prevention);
+    }
+
+    /* â”€â”€ Render findings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    function renderFindings(findings) {
+      const el = $('findingsList');
+      if (!findings || !findings.length) {
+        el.innerHTML = '<div class="empty"><p>No rule-based findings. Try adding a GitHub owner/repo or check the mock data.</p></div>';
+        return;
+      }
+      el.innerHTML = findings.map((f, i) => `
+        <div class="finding">
+          <div class="finding-rank">#${i+1}</div>
+          <div class="finding-body">
+            <div class="finding-title">${esc(f.summary)} ${badge(f.severity)}</div>
+            <div class="finding-detail">${esc(f.detail || '')}</div>
+            <div class="finding-conf">Confidence: ${Math.round((f.confidence||0)*100)}% &nbsp;Â·&nbsp; Rule: ${esc(f.rule)}</div>
+          </div>
+        </div>`).join('');
+    }
+
+    /* â”€â”€ Render timeline â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    function renderTimeline(events) {
+      const el = $('timelineList');
+      if (!events || !events.length) {
+        el.innerHTML = '<div class="empty"><p>No timeline events found.</p></div>';
+        return;
+      }
+      el.innerHTML = events.map((e, idx) => {
+        const isLast = idx === events.length - 1;
+        const sevClass = (e.severity || 'info').toLowerCase();
+        const dotClass = `${e.type || 'log'} ${sevClass === 'error' || sevClass === 'critical' ? 'error' : ''}`;
+        return `
+          <div class="tl-item">
+            <div class="tl-time">${fmtTs(e.timestamp)}</div>
+            <div class="tl-dot-col">
+              <div class="tl-dot ${dotClass}"></div>
+              ${isLast ? '' : '<div class="tl-line"></div>'}
+            </div>
+            <div class="tl-body">
+              <div class="tl-desc">${badge(e.severity)} ${esc(e.description)}</div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    /* â”€â”€ Render metrics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    const METRIC_DANGER = { cpu_percent: 80, memory_percent: 85, error_rate_percent: 10, db_connections_active: 45 };
+    const METRIC_WARN   = { cpu_percent: 60, memory_percent: 70, error_rate_percent: 2,  response_time_ms: 500 };
+    const METRIC_UNITS  = { cpu_percent:'%', memory_percent:'%', error_rate_percent:'%', response_time_ms:'ms', db_connections_active:'' };
+
+    function renderMetrics(summary) {
+      const el = $('metricsGrid');
+      if (!summary || !Object.keys(summary).length) {
+        el.innerHTML = '<div class="empty"><p>No metrics data available.</p></div>';
+        return;
+      }
+      el.innerHTML = Object.entries(summary).map(([name, v]) => {
+        const peak = v.peak;
+        const unit = METRIC_UNITS[name] || '';
+        const danger = METRIC_DANGER[name];
+        const warn   = METRIC_WARN[name];
+        let cls = 'ok';
+        if (danger && peak >= danger) cls = 'danger';
+        else if (warn && peak >= warn) cls = 'warn';
+        const label = name.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase());
+        return `
+          <div class="metric-tile ${cls}">
+            <div class="m-name">${esc(label)}</div>
+            <div class="m-peak">${typeof peak === 'number' ? peak.toFixed(peak % 1 ? 1 : 0) : peak}${unit}</div>
+            <div class="m-label">peak Â· ${v.samples} sample${v.samples !== 1 ? 's' : ''}</div>
+          </div>`;
+      }).join('');
+    }
+
+    /* â”€â”€ Render GitHub insights â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    function renderGitHub(gh) {
+      const el = $('githubContent');
+      if (!gh || !Object.keys(gh).length) {
+        el.innerHTML = `<div class="empty">
+          <p>No GitHub data â€” add an <strong>Owner</strong> and <strong>Repo</strong> in the sidebar to see live commits, workflow runs, and open issues here.</p>
+        </div>`;
+        return;
+      }
+      let html = '';
+
+      const commits = gh.recent_commits || [];
+      if (commits.length) {
+        html += `<div class="card-title" style="margin-bottom:8px">Recent Commits</div>`;
+        html += commits.map(c => `
+          <div class="gh-commit">
+            <span class="gh-sha">${esc(c.sha)}</span>
+            <span class="gh-msg">${esc(c.message)}</span>
+            <span class="gh-author">${esc(c.author)}</span>
+          </div>`).join('');
       }
 
-      function onPluginChange(){
-        const v = pluginSelect.value;
-        pluginParams.innerHTML = '';
-        if(v === 'github'){
-          pluginParams.innerHTML = `
-            <div class="row">
-              <div><label>Owner</label><input id="owner" placeholder="owner (e.g., microsoft)"></div>
-              <div><label>Repo</label><input id="repo" placeholder="repo name (e.g., vscode)"></div>
-            </div>`;
-        } else if(v === 'aws'){
-          pluginParams.innerHTML = `
-            <div><label>Resource</label>
-              <select id="resource"><option value="ec2">EC2</option><option value="s3">S3</option></select>
-            </div>`;
-        } else if(v === 'azure'){
-          pluginParams.innerHTML = `
-            <div><label>Subscription ID</label><input id="subscription_id" placeholder="subscription id"></div>`;
-        } else if(v === 'postman'){
-          pluginParams.innerHTML = `
-            <div><label>Type</label>
-              <select id="type"><option value="collections">Collections</option><option value="workspaces">Workspaces</option></select>
-            </div>`;
-        }
+      const failed = gh.failed_workflow_runs || [];
+      if (failed.length) {
+        html += `<div class="card-title" style="margin:14px 0 8px">Failed Workflow Runs</div>`;
+        html += failed.map(r => `
+          <div class="gh-commit">
+            <span class="gh-sha">${badge('critical')}</span>
+            <span class="gh-msg">${esc(r.name)} on <em>${esc(r.branch)}</em></span>
+            <span class="gh-author"><a href="${esc(r.url)}" target="_blank" rel="noopener">View â†’</a></span>
+          </div>`).join('');
       }
 
-      pluginSelect.addEventListener('change', onPluginChange);
-      onPluginChange();
-
-      // plugin logo SVGs
-      const PLUGIN_LOGOS = {
-        github: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 .5C5.73.5.75 5.48.75 11.76c0 4.92 3.19 9.09 7.61 10.56.56.1.76-.24.76-.53 0-.26-.01-1.14-.02-2.07-3.09.67-3.74-1.49-3.74-1.49-.5-1.27-1.22-1.61-1.22-1.61-.99-.68.08-.67.08-.67 1.09.08 1.67 1.12 1.67 1.12.97 1.66 2.55 1.18 3.17.9.1-.7.38-1.18.69-1.45-2.47-.28-5.06-1.24-5.06-5.53 0-1.22.44-2.22 1.16-3-.12-.28-.5-1.42.11-2.96 0 0 .95-.3 3.12 1.15a10.9 10.9 0 0 1 2.84-.38c.96 0 1.93.13 2.84.38 2.16-1.45 3.11-1.15 3.11-1.15.62 1.54.24 2.68.12 2.96.72.78 1.16 1.78 1.16 3 0 4.3-2.6 5.25-5.08 5.52.39.34.74 1.02.74 2.06 0 1.49-.01 2.69-.01 3.05 0 .29.2.64.77.53C19.07 20.85 22.25 16.68 22.25 11.76 22.25 5.48 17.27.5 11 .5z" fill="#111827"/></svg>',
-        aws: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" fill="#FF9900"/></svg>',
-        azure: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="2" width="20" height="20" rx="4" fill="#0078D4"/></svg>',
-        postman: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" fill="#FF6C37"/></svg>'
-      };
-
-      async function loadCatalog(){
-        catalogList.innerHTML = '<div class="small">Loading catalog...</div>';
-        try{
-          const r = await fetch('/plugins');
-          const j = await r.json();
-          const items = j.available || [];
-          if(items.length === 0){ catalogList.innerHTML = '<div class="small">No plugins available</div>'; return; }
-          const wrap = document.createElement('div');
-          wrap.style.display = 'grid';
-          wrap.style.gridTemplateColumns = '1fr';
-          wrap.style.gap = '8px';
-          items.forEach(name => {
-            const btn = document.createElement('button');
-            btn.className = 'secondary';
-            btn.style.display = 'flex';
-            btn.style.alignItems = 'center';
-            btn.style.gap = '10px';
-            btn.innerHTML = (PLUGIN_LOGOS[name] || '') + `<span style="text-transform:capitalize">${name}</span>`;
-            btn.onclick = () => { pluginSelect.value = name; onPluginChange(); /* auto-open params */; /* perform fetch to show live data */ fetchBtn.click(); };
-            wrap.appendChild(btn);
-          });
-          catalogList.innerHTML = '';
-          catalogList.appendChild(wrap);
-        }catch(e){ catalogList.innerHTML = '<div class="small">Failed to load catalog</div>'; }
+      const issues = gh.open_issues || [];
+      if (issues.length) {
+        html += `<div class="card-title" style="margin:14px 0 8px">Open Issues</div>`;
+        html += issues.map(i => `
+          <div class="gh-commit">
+            <span class="gh-sha">#${esc(i.number)}</span>
+            <span class="gh-msg">${esc(i.title)}</span>
+            <span class="gh-author"><a href="${esc(i.url)}" target="_blank" rel="noopener">View â†’</a></span>
+          </div>`).join('');
       }
 
-      // wire nav catalog
-      navCatalog.addEventListener('click', async () => { await loadCatalog(); catalogList.scrollIntoView({behavior: 'smooth'}); });
-      // load catalog on page load too
-      loadCatalog();
+      if (!html) html = '<div class="empty"><p>GitHub returned no relevant data for this repo.</p></div>';
+      el.innerHTML = html;
+    }
 
-      // Pretty render for GitHub data
-      function renderGithub(data){
-        const container = document.getElementById('fetchPretty');
-        if(!data) { container.innerHTML = ''; return; }
-        if(data.error){ container.innerHTML = `<div class="small">Error: ${escapeHtml(data.error)}</div>`; return; }
-        let html = '';
-        if(data.workflows && Array.isArray(data.workflows.workflows)){
-          html += '<h4>Workflows</h4><ul>';
-          data.workflows.workflows.slice(0,10).forEach(w=>{
-            html += `<li><strong>${escapeHtml(w.name)}</strong> — ${escapeHtml(w.state || w.status || '')}</li>`;
-          });
-          html += '</ul>';
-        }
-        if(data.workflow_runs && Array.isArray(data.workflow_runs)){
-          html += '<h4>Recent Workflow Runs</h4><ul>';
-          data.workflow_runs.slice(0,8).forEach(r=>{
-            const status = r.status || '';
-            const conclusion = r.conclusion || '';
-            html += `<li>${escapeHtml(r.name || r.head_commit?.message || r.head_branch || r.event)} — <em>${escapeHtml(status)}</em> / <strong>${escapeHtml(conclusion)}</strong> — <a href="${escapeHtml(r.html_url)}" target="_blank">view</a></li>`;
-          });
-          html += '</ul>';
-        }
-        if(data.deployments && Array.isArray(data.deployments)){
-          html += '<h4>Deployments</h4><ul>' + data.deployments.slice(0,6).map(d=>`<li>${escapeHtml(d.environment || d.ref || d.creator?.login)}</li>`).join('') + '</ul>';
-        }
-        if(data.commits && Array.isArray(data.commits)){
-          html += '<h4>Recent Commits</h4><ul>' + data.commits.slice(0,6).map(c=>`<li>${escapeHtml(c.commit?.message?.split("\n")[0]||c.sha)} — <a href="https://github.com/${escapeHtml(c.url?.replace('api.github.com/repos','github.com').replace('/repos/','/'))}" target="_blank">view</a></li>`).join('') + '</ul>';
-        }
-        if(html === '') html = '<div class="small">No rich GitHub data available</div>';
-        container.innerHTML = html;
+    /* â”€â”€ Analyse â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    async function analyze() {
+      const btn   = $('analyzeBtn');
+      const query = $('query').value.trim();
+      if (!query) return;
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Analyzingâ€¦';
+      $('emptyState').style.display = 'none';
+      $('results').style.display = 'none';
+
+      const body = {
+        query,
+        service:      $('service').value || null,
+        github_owner: $('ghOwner').value.trim() || null,
+        github_repo:  $('ghRepo').value.trim()  || null,
+      };
+
+      try {
+        const res = await fetch('/api/v1/analyze-incident', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        const ev   = data.evidence    || {};
+        const expl = data.explanation || {};
+
+        renderAI(expl, expl.provider);
+        renderFindings(ev.findings     || []);
+        renderTimeline(ev.timeline     || []);
+        renderMetrics(ev.metrics_summary || {});
+        renderGitHub(ev.github_insights  || {});
+
+        $('results').style.display = 'flex';
+        // activate first tab
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab')[0].classList.add('active');
+        $('panel-findings').classList.add('active');
+
+      } catch (err) {
+        $('emptyState').style.display = 'block';
+        $('emptyState').innerHTML = `<p style="color:var(--red);font-weight:600">Error: ${esc(err.message)}</p><p style="margin-top:6px;font-size:13px">Make sure the backend is running: <code>uvicorn backend.main:app --reload</code></p>`;
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Analyze Incident';
       }
+    }
 
-      function escapeHtml(s){ if(!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    $('analyzeBtn').addEventListener('click', analyze);
+    $('query').addEventListener('keydown', e => { if (e.key === 'Enter' && e.ctrlKey) analyze(); });
 
-      fetchBtn.onclick = async () => {
-        statusEl.textContent = 'fetching...';
-        const plugin = pluginSelect.value;
-        let params = {};
-        if(plugin === 'github'){
-          params.owner = document.getElementById('owner').value;
-          params.repo = document.getElementById('repo').value;
-          params.per_page = 5;
-        } else if(plugin === 'aws'){
-          params.resource = document.getElementById('resource').value;
-        } else if(plugin === 'azure'){
-          params.subscription_id = document.getElementById('subscription_id').value;
-        } else if(plugin === 'postman'){
-          params.type = document.getElementById('type').value;
-        }
-
-        try{
-          const res = await fetch('/plugins/fetch', { method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ plugin, params }) });
-          let j;
-          try { j = await res.json(); }
-          catch(_) { j = await res.text(); }
-          showJSON(fetchResult, j);
-          statusEl.textContent = res.ok ? 'ready' : 'error';
-        }catch(e){
-          showJSON(fetchResult, { error: String(e) });
-          statusEl.textContent = 'error';
-        }
-      };
-
-      analyzeBtn.onclick = async () => {
-        statusEl.textContent = 'analyzing...';
-        const q = document.getElementById('question').value;
-        // include current plugin selection data in analysis for convenience
-        const plugin = pluginSelect.value;
-        let params = {};
-        if(plugin === 'github'){
-          params.owner = document.getElementById('owner')?.value;
-          params.repo = document.getElementById('repo')?.value;
-          params.per_page = 5;
-        }
-        const body = { query: q, plugins: [{ plugin, params }] };
-        try{
-          const res = await fetch('/analyze', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
-          let j;
-          try { j = await res.json(); }
-          catch(_) { j = await res.text(); }
-          showJSON(analysisResult, j);
-          statusEl.textContent = res.ok ? 'ready' : 'error';
-        }catch(e){
-          showJSON(analysisResult, { error: String(e) });
-          statusEl.textContent = 'error';
-        }
-      };
-
-      pingBtn.onclick = async () => {
-        try{
-          const r = await fetch('/health');
-          const j = await r.json();
-          apiStatus.textContent = j.status || 'ok';
-        }catch(e){ apiStatus.textContent = 'offline' }
-      };
-
-      // ping once on load
-      pingBtn.click();
+    /* â”€â”€ API health check â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    async function checkApi() {
+      try {
+        const r = await fetch('/api/v1/health');
+        const j = await r.json();
+        $('apiDot').className    = 'ok';
+        $('apiStatus').textContent = j.status === 'ok' ? 'API online' : j.status;
+      } catch {
+        $('apiDot').className    = 'err';
+        $('apiStatus').textContent = 'API offline';
+      }
+    }
+    checkApi();
+    setInterval(checkApi, 30000);
     </script>
   </body>
 </html>
