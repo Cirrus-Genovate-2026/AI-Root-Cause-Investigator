@@ -1,0 +1,52 @@
+name: Notify Portal (post GitHub events)
+
+on:
+  push: {}
+  pull_request: {}
+  workflow_run: {}
+  deployment: {}
+  issues: {}
+  release: {}
+
+jobs:
+  post-event:
+    name: Post GitHub event payload to portal
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read event payload file
+        id: read
+        run: |
+          echo "EVENT_PATH=$GITHUB_EVENT_PATH" >> $GITHUB_ENV
+          echo "REPO=${GITHUB_REPOSITORY}" >> $GITHUB_ENV
+
+      - name: Post payload to portal webhook
+        env:
+          PORTAL_URL: ${{ secrets.PORTAL_URL }}
+          PORTAL_TOKEN: ${{ secrets.PORTAL_TOKEN }}
+        run: |
+          if [ -z "$PORTAL_URL" ]; then
+            echo "PORTAL_URL secret is not set. Skipping.";
+            exit 0;
+          fi
+          echo "Posting event '${{ github.event_name }}' for repo ${GITHUB_REPOSITORY} to $PORTAL_URL"
+          # send the raw event payload file preserved as binary
+          HEADER_OPTS=( -H "Content-Type: application/json" -H "X-GitHub-Event: ${GITHUB_EVENT_NAME:-${{ github.event_name }}}" )
+          if [ -n "$PORTAL_TOKEN" ]; then
+            HEADER_OPTS+=( -H "X-Portal-Token: $PORTAL_TOKEN" )
+          fi
+          # Some events have full payload at GITHUB_EVENT_PATH
+          if [ -f "$GITHUB_EVENT_PATH" ]; then
+            curl -s -X POST "${PORTAL_URL}/webhooks/github" "${HEADER_OPTS[@]}" --data-binary @"$GITHUB_EVENT_PATH" || true
+          else
+            # fallback: send minimal info
+            cat <<EOF > /tmp/portal_event.json
+{
+  "event": "${{ github.event_name }}",
+  "repo": "${GITHUB_REPOSITORY}",
+  "actor": "${GITHUB_ACTOR}",
+  "ref": "${GITHUB_REF}",
+  "sha": "${GITHUB_SHA}"
+}
+EOF
+            curl -s -X POST "${PORTAL_URL}/webhooks/github" "${HEADER_OPTS[@]}" -d @/tmp/portal_event.json || true
+          fi

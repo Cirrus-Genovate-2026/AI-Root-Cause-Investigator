@@ -265,6 +265,14 @@
                 <input id="ghRepo" placeholder="e.g. vscode">
               </div>
             </div>
+            <div style="margin-bottom:10px">
+              <label for="ghTokenInput">GitHub Token (optional)</label>
+              <input id="ghTokenInput" placeholder="Paste a PAT here to test scopes (optional)" />
+              <div style="display:flex;gap:8px;margin-top:8px">
+                <button id="testTokenBtn" class="btn btn-ghost">Test Token</button>
+                <div id="tokenResult" style="font-size:13px;color:var(--muted);padding-top:6px"></div>
+              </div>
+            </div>
             <p style="font-size:11px;color:var(--muted);line-height:1.5">
               When filled, live GitHub commits, workflow runs and deployments are merged into the analysis.
               Set <code>GITHUB_TOKEN</code> in <code>.env</code> to avoid rate limits.
@@ -293,6 +301,22 @@
             </button>
           </div>
 
+          <!-- Plugin catalog -->
+          <div class="sidebar-section">
+            <h3>Plugins</h3>
+            <div id="pluginCatalog" style="display:flex;flex-direction:column;gap:8px"></div>
+          </div>
+
+          <!-- Settings -->
+          <div class="sidebar-section" style="margin-top:auto">
+            <h3>Settings</h3>
+            <p style="font-size:12px;color:var(--muted);margin-bottom:8px">AI analysis runs on the server if <code>OPENAI_API_KEY</code> is set in the backend environment.</p>
+            <div style="display:flex;gap:8px;align-items:center">
+              <div id="openaiStatus" style="font-size:13px;color:var(--muted)">Checking OpenAI…</div>
+            </div>
+            <p style="font-size:11px;color:var(--muted);margin-top:8px">Tip: For local testing, set <code>OPENAI_API_KEY</code> in the .env file and restart the server.</p>
+          </div>
+
         </aside>
 
         <!-- â”€â”€ Main content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
@@ -310,9 +334,11 @@
 
             <!-- â”€â”€ AI Explanation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
             <div class="card" id="aiCard">
-              <div class="card-title">
-                AI Root Cause Explanation
-                <span id="providerPill" class="provider-pill"></span>
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <div class="card-title" style="margin:0">AI Root Cause Explanation <span id="providerPill" class="provider-pill"></span></div>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <button id="runLlmBtn" class="btn btn-ghost">Run LLM</button>
+                </div>
               </div>
               <div id="aiRootCause" class="ai-root-cause"></div>
               <div class="confidence-bar-wrap">
@@ -357,6 +383,10 @@
                 <!-- GitHub panel -->
                 <div id="panel-github" class="tab-panel">
                   <div id="githubContent"></div>
+                  <div style="margin-top:14px">
+                    <div class="card-title" style="margin-bottom:8px">Live GitHub Events</div>
+                    <div id="ghLiveEvents" style="max-height:240px;overflow:auto;border:1px solid var(--border);border-radius:8px;padding:8px;background:#fff"></div>
+                  </div>
                 </div>
 
               </div>
@@ -574,7 +604,7 @@
         github_repo:  $('ghRepo').value.trim()  || null,
       };
 
-      try {
+        try {
         const res = await fetch('/api/v1/analyze-incident', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -586,11 +616,31 @@
         const ev   = data.evidence    || {};
         const expl = data.explanation || {};
 
+        // store gathered data so user can run LLM analysis on it
+        window.LAST_GATHERED = data.gathered || { evidence: ev, explanation: expl, raw: data };
+
         renderAI(expl, expl.provider);
         renderFindings(ev.findings     || []);
         renderTimeline(ev.timeline     || []);
         renderMetrics(ev.metrics_summary || {});
-        renderGitHub(ev.github_insights  || {});
+
+        // fetch GitHub insights separately if owner/repo provided
+        const ghOwner = body.github_owner; const ghRepo = body.github_repo;
+        if (ghOwner && ghRepo) {
+          try {
+            const ghr = await fetch('/api/v1/github-insights', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ github_owner: ghOwner, github_repo: ghRepo }) });
+            if (ghr.ok) {
+              const ghData = await ghr.json();
+              renderGitHub(ghData || {});
+            } else {
+              renderGitHub({});
+            }
+          } catch (e) {
+            renderGitHub({});
+          }
+        } else {
+          renderGitHub(ev.github_insights  || {});
+        }
 
         $('results').style.display = 'flex';
         // activate first tab
@@ -625,6 +675,141 @@
     }
     checkApi();
     setInterval(checkApi, 30000);
+    /* €€ Plugin catalog and OpenAI status €€ */
+    async function loadPlugins() {
+      try {
+        const res = await fetch('/plugins');
+        if (!res.ok) return;
+        const j = await res.json();
+        const list = j.available || [];
+        const el = $('pluginCatalog');
+        el.innerHTML = '';
+        list.forEach(p => {
+          const b = document.createElement('button');
+          b.className = 'chip';
+          b.innerHTML = `<div class="chip-title">${esc(p)}</div><div class="chip-sub">Connect to ${esc(p)}</div>`;
+          b.onclick = async () => {
+            // quick sample fetch to show plugin works
+            b.disabled = true; const old = b.innerHTML; b.innerHTML = '<span class="spinner"></span> Loading';
+            try {
+              const r = await fetch('/plugins/fetch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plugin: p, params: {} }) });
+              if (r.ok) {
+                const d = await r.json();
+                alert(`Plugin ${p} responded: ` + (d && d.data ? JSON.stringify(Object.keys(d.data).slice(0,6)) : JSON.stringify(d)));
+              } else {
+                const t = await r.text(); alert('Plugin fetch failed: ' + t);
+              }
+            } catch (e) { alert('Error: ' + e.message); }
+            b.disabled = false; b.innerHTML = old;
+          };
+          el.appendChild(b);
+        });
+      } catch (e) { /* ignore */ }
+    }
+
+    async function checkOpenAIStatus() {
+      try {
+        const r = await fetch('/api/v1/openai-status');
+        if (!r.ok) return; const j = await r.json();
+        $('openaiStatus').textContent = j.available ? `Server LLM: ${esc(j.model || 'available')}` : 'Server LLM: not configured';
+      } catch (e) { $('openaiStatus').textContent = 'OpenAI: error'; }
+    }
+
+    loadPlugins();
+    checkOpenAIStatus();
+
+
+    /* â”€â”€ GitHub Token test + SSE wiring â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    async function testToken() {
+      const btn = $('testTokenBtn');
+      const out = $('tokenResult');
+      btn.disabled = true; btn.textContent = 'Testingâ€¦'; out.textContent = '';
+      const token = $('ghTokenInput').value.trim();
+      try {
+        const res = await fetch('/plugins/github/test-token', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: token || null }) });
+        if (!res.ok) {
+          const t = await res.text();
+          out.textContent = 'Error: ' + t;
+        } else {
+          const j = await res.json();
+          if (j.ok) {
+            out.innerHTML = `Logged in as <strong>${esc(j.login||'')}</strong>. Scopes: <em>${(j.scopes||[]).map(s=>esc(s)).join(', ')}</em>`;
+          } else {
+            out.innerHTML = `Token invalid (status ${j.status_code}). Scopes: <em>${(j.scopes||[]).map(s=>esc(s)).join(', ')}</em>`;
+          }
+        }
+      } catch (e) {
+        out.textContent = 'Error: ' + e.message;
+      } finally {
+        btn.disabled = false; btn.textContent = 'Test Token';
+      }
+    }
+
+    function renderLiveEvent(evt) {
+      const el = $('ghLiveEvents');
+      const d = document.createElement('div');
+      d.style.borderBottom = '1px solid var(--border)';
+      d.style.padding = '8px';
+      const t = evt.payload && evt.payload.repository ? evt.payload.repository.full_name : (evt.payload && evt.payload.repo ? evt.payload.repo : 'repo');
+      const ts = evt.received_at || new Date().toISOString();
+      d.innerHTML = `<div style="font-size:12px;font-weight:600">${esc(evt.event || 'event')} <span style="font-weight:400;color:var(--muted);font-size:11px">${esc(t)}</span></div><div style="font-size:13px;color:var(--muted);margin-top:6px">${esc(JSON.stringify(evt.payload).slice(0,300))}${(JSON.stringify(evt.payload).length>300? '...':'')}</div><div style="font-size:11px;color:var(--muted);margin-top:6px">${fmtTs(ts)}</div>`;
+      el.prepend(d);
+      // keep list reasonable
+      while (el.children.length > 100) el.removeChild(el.lastChild);
+    }
+
+    async function seedLiveEvents() {
+      try {
+        const r = await fetch('/plugins/github/live');
+        if (!r.ok) return;
+        const j = await r.json();
+        (j.events || []).forEach(e => renderLiveEvent(e));
+      } catch (e) { /* ignore */ }
+    }
+
+    function initSSE() {
+      // seed backlog
+      seedLiveEvents();
+      try {
+        const es = new EventSource('/sse/github');
+        es.onmessage = (m) => {
+          try { const d = JSON.parse(m.data); renderLiveEvent(d); } catch (e) { console.log('sse parse', e); }
+        };
+        es.onerror = (e) => { console.log('sse error', e); es.close(); setTimeout(initSSE, 3000); };
+      } catch (e) {
+        console.log('sse init failed', e);
+      }
+    }
+
+    // wire UI buttons
+    $('testTokenBtn').addEventListener('click', testToken);
+    $('runLlmBtn').addEventListener('click', runLLM);
+    // start SSE for live events
+    initSSE();
+
+    async function runLLM() {
+      const btn = $('runLlmBtn');
+      btn.disabled = true; btn.textContent = 'Running LLMâ€¦';
+      try {
+        const query = $('query').value.trim();
+        const gathered = window.LAST_GATHERED || {};
+        const res = await fetch('/api/v1/openai-analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query, gathered }) });
+        if (!res.ok) {
+          const t = await res.text();
+          alert('LLM error: ' + t);
+          return;
+        }
+        const j = await res.json();
+        const analysis = j.analysis || j;
+        // display analysis in AI card
+        $('aiRootCause').textContent = analysis;
+        $('providerPill').textContent = 'OpenAI';
+      } catch (e) {
+        alert('LLM call failed: ' + e.message);
+      } finally {
+        btn.disabled = false; btn.textContent = 'Run LLM';
+      }
+    }
     </script>
   </body>
 </html>
