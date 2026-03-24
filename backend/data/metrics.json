@@ -1,0 +1,48 @@
+[
+  {"timestamp": "2026-03-19T10:00:00Z", "service": "checkout", "name": "cpu_percent",       "value": 42,   "host": "checkout-pod-1"},
+  {"timestamp": "2026-03-19T10:02:00Z", "service": "checkout", "name": "cpu_percent",       "value": 45,   "host": "checkout-pod-1"},
+  {"timestamp": "2026-03-19T10:04:00Z", "service": "checkout", "name": "cpu_percent",       "value": 52,   "host": "checkout-pod-1"},
+  {"timestamp": "2026-03-19T10:06:00Z", "service": "checkout", "name": "cpu_percent",       "value": 67,   "host": "checkout-pod-1"},
+  {"timestamp": "2026-03-19T10:08:00Z", "service": "checkout", "name": "cpu_percent",       "value": 83,   "host": "checkout-pod-1"},
+  {"timestamp": "2026-03-19T10:10:00Z", "service": "checkout", "name": "cpu_percent",       "value": 91,   "host": "checkout-pod-1"},
+  {"timestamp": "2026-03-19T10:12:00Z", "service": "checkout", "name": "cpu_percent",       "value": 95,   "host": "checkout-pod-1"},
+  {"timestamp": "2026-03-19T10:14:00Z", "service": "checkout", "name": "cpu_percent",       "value": 96,   "host": "checkout-pod-1"},
+  {"timestamp": "2026-03-19T10:20:00Z", "service": "checkout", "name": "cpu_percent",       "value": 55,   "host": "checkout-pod-1"},
+
+  {"timestamp": "2026-03-19T10:00:00Z", "service": "checkout", "name": "memory_percent",    "value": 55,   "host": "checkout-pod-1"},
+  {"timestamp": "2026-03-19T10:04:00Z", "service": "checkout", "name": "memory_percent",    "value": 61,   "host": "checkout-pod-1"},
+  {"timestamp": "2026-03-19T10:08:00Z", "service": "checkout", "name": "memory_percent",    "value": 74,   "host": "checkout-pod-1"},
+  {"timestamp": "2026-03-19T10:12:00Z", "service": "checkout", "name": "memory_percent",    "value": 87,   "host": "checkout-pod-1"},
+  {"timestamp": "2026-03-19T10:16:00Z", "service": "checkout", "name": "memory_percent",    "value": 89,   "host": "checkout-pod-1"},
+  {"timestamp": "2026-03-19T10:20:00Z", "service": "checkout", "name": "memory_percent",    "value": 60,   "host": "checkout-pod-1"},
+
+  {"timestamp": "2026-03-19T10:00:00Z", "service": "checkout", "name": "response_time_ms",  "value": 210,  "host": "checkout-pod-1"},
+  {"timestamp": "2026-03-19T10:04:00Z", "service": "checkout", "name": "response_time_ms",  "value": 280,  "host": "checkout-pod-1"},
+  {"timestamp": "2026-03-19T10:06:00Z", "service": "checkout", "name": "response_time_ms",  "value": 850,  "host": "checkout-pod-1"},
+  {"timestamp": "2026-03-19T10:08:00Z", "service": "checkout", "name": "response_time_ms",  "value": 1900, "host": "checkout-pod-1"},
+  {"timestamp": "2026-03-19T10:10:00Z", "service": "checkout", "name": "response_time_ms",  "value": 3200, "host": "checkout-pod-1"},
+  {"timestamp": "2026-03-19T10:12:00Z", "service": "checkout", "name": "response_time_ms",  "value": 5100, "host": "checkout-pod-1"},
+  {"timestamp": "2026-03-19T10:20:00Z", "service": "checkout", "name": "response_time_ms",  "value": 230,  "host": "checkout-pod-1"},
+
+  {"timestamp": "2026-03-19T10:00:00Z", "service": "checkout", "name": "error_rate_percent","value": 0.1,  "host": "checkout-pod-1"},
+  {"timestamp": "2026-03-19T10:04:00Z", "service": "checkout", "name": "error_rate_percent","value": 0.3,  "host": "checkout-pod-1"},
+  {"timestamp": "2026-03-19T10:06:00Z", "service": "checkout", "name": "error_rate_percent","value": 1.2,  "host": "checkout-pod-1"},
+  {"timestamp": "2026-03-19T10:08:00Z", "service": "checkout", "name": "error_rate_percent","value": 12.5, "host": "checkout-pod-1"},
+  {"timestamp": "2026-03-19T10:10:00Z", "service": "checkout", "name": "error_rate_percent","value": 35.8, "host": "checkout-pod-1"},
+  {"timestamp": "2026-03-19T10:12:00Z", "service": "checkout", "name": "error_rate_percent","value": 48.2, "host": "checkout-pod-1"},
+  {"timestamp": "2026-03-19T10:15:00Z", "service": "checkout", "name": "error_rate_percent","value": 52.1, "host": "checkout-pod-1"},
+  {"timestamp": "2026-03-19T10:20:00Z", "service": "checkout", "name": "error_rate_percent","value": 0.4,  "host": "checkout-pod-1"},
+
+  {"timestamp": "2026-03-19T10:06:00Z", "service": "checkout", "name": "db_connections_active","value": 28, "host": "checkout-pod-1"},
+  {"timestamp": "2026-03-19T10:08:00Z", "service": "checkout", "name": "db_connections_active","value": 39, "host": "checkout-pod-1"},
+  {"timestamp": "2026-03-19T10:09:00Z", "service": "checkout", "name": "db_connections_active","value": 50, "host": "checkout-pod-1"},
+  {"timestamp": "2026-03-19T10:10:00Z", "service": "checkout", "name": "db_connections_active","value": 50, "host": "checkout-pod-1"},
+  {"timestamp": "2026-03-19T10:12:00Z", "service": "checkout", "name": "db_connections_active","value": 50, "host": "checkout-pod-1"},
+  {"timestamp": "2026-03-19T10:20:00Z", "service": "checkout", "name": "db_connections_active","value": 12, "host": "checkout-pod-1"},
+
+  {"timestamp": "2026-03-19T10:00:00Z", "service": "payment", "name": "cpu_percent",        "value": 30,   "host": "payment-pod-1"},
+  {"timestamp": "2026-03-19T10:10:00Z", "service": "payment", "name": "cpu_percent",        "value": 38,   "host": "payment-pod-1"},
+
+  {"timestamp": "2026-03-19T10:00:00Z", "service": "auth",    "name": "cpu_percent",        "value": 15,   "host": "auth-pod-1"},
+  {"timestamp": "2026-03-19T10:10:00Z", "service": "auth",    "name": "cpu_percent",        "value": 18,   "host": "auth-pod-1"}
+]
