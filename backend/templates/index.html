@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PlatformIQ - AI-Powered Integration Portal</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <span class="logo-icon">⚡</span>
+                    <span class="logo-text">PlatformIQ</span>
+                </div>
+                <p class="tagline">AI Integration Hub</p>
+            </div>
+
+            <nav class="nav-menu">
+                <a href="#" class="nav-item active" data-page="dashboard">
+                    <span class="nav-icon">📊</span>
+                    <span class="nav-label">Dashboard</span>
+                </a>
+                <a href="#" class="nav-item" data-page="github">
+                    <span class="nav-icon">🐙</span>
+                    <span class="nav-label">GitHub</span>
+                </a>
+                <a href="#" class="nav-item" data-page="aws">
+                    <span class="nav-icon">☁️</span>
+                    <span class="nav-label">AWS</span>
+                </a>
+                <a href="#" class="nav-item" data-page="postman">
+                    <span class="nav-icon">📮</span>
+                    <span class="nav-label">Postman</span>
+                </a>
+                <a href="#" class="nav-item" data-page="ai-assistant">
+                    <span class="nav-icon">🤖</span>
+                    <span class="nav-label">AI Assistant</span>
+                </a>
+                <a href="#" class="nav-item" data-page="settings">
+                    <span class="nav-icon">⚙️</span>
+                    <span class="nav-label">Settings</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-section">
+                    <div class="user-avatar">👤</div>
+                    <div class="user-info">
+                        <div class="user-name">Admin</div>
+                        <div class="user-status">Online</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <h1 id="page-title">Dashboard</h1>
+                </div>
+                <div class="header-right">
+                    <div class="search-box">
+                        <input type="text" placeholder="Search plugins..." id="search-input">
+                        <span class="search-icon">🔍</span>
+                    </div>
+                    <button class="refresh-btn" onclick="location.reload()">🔄</button>
+                </div>
+            </header>
+
+            <!-- Content Area -->
+            <div class="content-area">
+                <!-- Dashboard Page -->
+                <div class="page" id="page-dashboard">
+                    <div class="overview-grid">
+                        <div class="metric-card">
+                            <div class="metric-header">
+                                <span class="metric-icon">💰</span>
+                                <span class="metric-title">Cloud Cost</span>
+                            </div>
+                            <div class="metric-value" id="cost-value">$420</div>
+                            <div class="metric-change positive">↑ 5%</div>
+                        </div>
+
+                        <div class="metric-card">
+                            <div class="metric-header">
+                                <span class="metric-icon">⚠️</span>
+                                <span class="metric-title">Active Incidents</span>
+                            </div>
+                            <div class="metric-value" id="incidents-value">1</div>
+                            <div class="metric-change negative">↓ -1</div>
+                        </div>
+
+                        <div class="metric-card">
+                            <div class="metric-header">
+                                <span class="metric-icon">✨</span>
+                                <span class="metric-title">AI Insights</span>
+                            </div>
+                            <div class="metric-value" id="insights-value">3</div>
+                            <div class="metric-change positive">↑ +2</div>
+                        </div>
+
+                        <div class="metric-card">
+                            <div class="metric-header">
+                                <span class="metric-icon">🔗</span>
+                                <span class="metric-title">Connected Services</span>
+                            </div>
+                            <div class="metric-value">3</div>
+                            <div class="metric-change neutral">All connected</div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <h2 class="section-title">📌 Recent Activity</h2>
+                        <div class="activity-log" id="activity-log">
+                            <div class="activity-item">
+                                <div class="activity-time">2 mins ago</div>
+                                <div class="activity-content">
+                                    <span class="activity-badge github">GitHub</span>
+                                    <span>Deployment v2.1.3 completed</span>
+                                </div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-time">5 mins ago</div>
+                                <div class="activity-content">
+                                    <span class="activity-badge aws">AWS</span>
+                                    <span>Auto-scaling triggered on EC2</span>
+                                </div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-time">10 mins ago</div>
+                                <div class="activity-content">
+                                    <span class="activity-badge ai">AI</span>
+                                    <span>Cost optimization recommendation generated</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <h2 class="section-title">🔌 Plugin Overview</h2>
+                        <div class="plugin-grid">
+                            <div class="plugin-card" data-page="github">
+                                <div class="plugin-header">
+                                    <span class="plugin-icon">🐙</span>
+                                    <span class="plugin-name">GitHub</span>
+                                </div>
+                                <p class="plugin-desc">Repository management, CI/CD & deployments</p>
+                                <div class="plugin-stats">
+                                    <span>Last updated: 2 mins ago</span>
+                                </div>
+                            </div>
+
+                            <div class="plugin-card" data-page="aws">
+                                <div class="plugin-header">
+                                    <span class="plugin-icon">☁️</span>
+                                    <span class="plugin-name">AWS</span>
+                                </div>
+                                <p class="plugin-desc">Infrastructure monitoring & cost management</p>
+                                <div class="plugin-stats">
+                                    <span>Last updated: 5 mins ago</span>
+                                </div>
+                            </div>
+
+                            <div class="plugin-card" data-page="postman">
+                                <div class="plugin-header">
+                                    <span class="plugin-icon">📮</span>
+                                    <span class="plugin-name">Postman</span>
+                                </div>
+                                <p class="plugin-desc">API testing, documentation & collections</p>
+                                <div class="plugin-stats">
+                                    <span>Last updated: 15 mins ago</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GitHub Page -->
+                <div class="page hidden" id="page-github">
+                    <div class="section">
+                        <div class="section-header">
+                            <h2 class="section-title">🐙 GitHub Integration</h2>
+                            <button class="btn-primary" onclick="loadGitHubData()">Sync</button>
+                        </div>
+
+                        <!-- GitHub Stats -->
+                        <div class="info-card" style="margin-bottom: 20px;">
+                            <h3>Repository Info</h3>
+                            <div id="github-stats" class="data-list">
+                                <div class="loading">Loading...</div>
+                            </div>
+                        </div>
+
+                        <!-- GitHub Tabs -->
+                        <div class="github-tabs" style="margin-bottom: 20px;">
+                            <button class="tab-btn active" onclick="switchGitHubTab('commits')">Commits</button>
+                            <button class="tab-btn" onclick="switchGitHubTab('workflows')">Workflows</button>
+                            <button class="tab-btn" onclick="switchGitHubTab('pull-requests')">Pull Requests</button>
+                            <button class="tab-btn" onclick="switchGitHubTab('issues')">Issues</button>
+                            <button class="tab-btn" onclick="switchGitHubTab('branches')">Branches</button>
+                        </div>
+
+                        <!-- Commits Tab -->
+                        <div id="github-commits-tab" class="github-tab-content">
+                            <div class="info-grid">
+                                <div class="info-card">
+                                    <h3>Recent Commits</h3>
+                                    <div id="github-commits" class="data-list">
+                                        <div class="loading">Loading...</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Workflows Tab -->
+                        <div id="github-workflows-tab" class="github-tab-content hidden">
+                            <div class="info-grid">
+                                <div class="info-card">
+                                    <h3>Action Workflows</h3>
+                                    <div id="github-workflows" class="data-list">
+                                        <div class="loading">Loading...</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pull Requests Tab -->
+                        <div id="github-prs-tab" class="github-tab-content hidden">
+                            <div class="info-grid">
+                                <div class="info-card">
+                                    <h3>Pull Requests</h3>
+                                    <div id="github-prs" class="data-list">
+                                        <div class="loading">Loading...</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Issues Tab -->
+                        <div id="github-issues-tab" class="github-tab-content hidden">
+                            <div class="info-grid">
+                                <div class="info-card">
+                                    <h3>Issues</h3>
+                                    <div id="github-issues" class="data-list">
+                                        <div class="loading">Loading...</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Branches Tab -->
+                        <div id="github-branches-tab" class="github-tab-content hidden">
+                            <div class="info-grid">
+                                <div class="info-card">
+                                    <h3>Branches</h3>
+                                    <div id="github-branches" class="data-list">
+                                        <div class="loading">Loading...</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AWS Page -->
+                <div class="page hidden" id="page-aws">
+                    <div class="section">
+                        <div class="section-header">
+                            <h2 class="section-title">☁️ AWS Integration</h2>
+                            <button class="btn-primary" onclick="loadAWSData()">Sync</button>
+                        </div>
+                        <div class="aws-content">
+                            <div class="info-grid">
+                                <div class="info-card">
+                                    <h3>Resource Overview</h3>
+                                    <div id="aws-resources" class="data-list">
+                                        <div class="loading">Loading...</div>
+                                    </div>
+                                </div>
+                                <div class="info-card">
+                                    <h3>Cost Analysis</h3>
+                                    <div id="aws-costs" class="data-list">
+                                        <div class="loading">Loading...</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Postman Page -->
+                <div class="page hidden" id="page-postman">
+                    <div class="section">
+                        <div class="section-header">
+                            <h2 class="section-title">📮 Postman Integration</h2>
+                            <button class="btn-primary" onclick="loadPostmanData()">Sync</button>
+                        </div>
+                        <div class="postman-content">
+                            <div class="info-grid">
+                                <div class="info-card">
+                                    <h3>Collections</h3>
+                                    <div id="postman-collections" class="data-list">
+                                        <div class="loading">Loading...</div>
+                                    </div>
+                                </div>
+                                <div class="info-card">
+                                    <h3>Recent Tests</h3>
+                                    <div id="postman-tests" class="data-list">
+                                        <div class="loading">Loading...</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Assistant Page -->
+                <div class="page hidden" id="page-ai-assistant">
+                    <div class="section">
+                        <h2 class="section-title">🤖 AI Assistant</h2>
+                        <div class="ai-container">
+                            <div class="chat-area" id="chat-area">
+                                <div class="chat-message bot">
+                                    <div class="message-content">Hello! I'm your AI assistant. Ask me anything about your infrastructure, deployments, or costs.</div>
+                                </div>
+                            </div>
+                            <div class="input-area">
+                                <input type="text" id="ai-input" placeholder="Ask a question..." class="ai-input">
+                                <button onclick="sendAIMessage()" class="send-btn">Send</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings Page -->
+                <div class="page hidden" id="page-settings">
+                    <div class="section">
+                        <h2 class="section-title">⚙️ Settings & Configuration</h2>
+                        
+                        <div class="settings-container">
+                            <!-- GitHub Settings -->
+                            <div class="settings-card">
+                                <div class="settings-header">
+                                    <span class="settings-icon">🐙</span>
+                                    <h3>GitHub Configuration</h3>
+                                </div>
+                                <div class="settings-content">
+                                    <div class="setting-item">
+                                        <label>GitHub Token</label>
+                                        <input type="password" id="github-token" placeholder="ghp_...">
+                                        <small>Create at https://github.com/settings/tokens (requires repo, read:actions scopes)</small>
+                                    </div>
+                                    <div class="setting-item">
+                                        <label>Repository (owner/repo)</label>
+                                        <input type="text" id="github-repo" placeholder="e.g., microsoft/vscode">
+                                    </div>
+                                    <button onclick="testGitHubConnection()" class="btn-primary">Test Connection</button>
+                                    <button onclick="saveGitHubSettings()" class="btn-primary" style="margin-left: 10px;">Save Settings</button>
+                                    <div id="github-status" style="margin-top: 10px; font-size: 12px;"></div>
+                                </div>
+                            </div>
+
+                            <!-- AWS Settings -->
+                            <div class="settings-card">
+                                <div class="settings-header">
+                                    <span class="settings-icon">☁️</span>
+                                    <h3>AWS Configuration</h3>
+                                </div>
+                                <div class="settings-content">
+                                    <div class="setting-item">
+                                        <label>AWS Access Key ID</label>
+                                        <input type="password" id="aws-key" placeholder="AKIA...">
+                                    </div>
+                                    <div class="setting-item">
+                                        <label>AWS Secret Access Key</label>
+                                        <input type="password" id="aws-secret" placeholder="...">
+                                    </div>
+                                    <div class="setting-item">
+                                        <label>AWS Region</label>
+                                        <input type="text" id="aws-region" placeholder="e.g., us-east-1">
+                                    </div>
+                                    <button onclick="testAWSConnection()" class="btn-primary">Test Connection</button>
+                                    <button onclick="saveAWSSettings()" class="btn-primary" style="margin-left: 10px;">Save Settings</button>
+                                    <div id="aws-status" style="margin-top: 10px; font-size: 12px;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Postman Settings -->
+                            <div class="settings-card">
+                                <div class="settings-header">
+                                    <span class="settings-icon">📮</span>
+                                    <h3>Postman Configuration</h3>
+                                </div>
+                                <div class="settings-content">
+                                    <div class="setting-item">
+                                        <label>Postman API Key</label>
+                                        <input type="password" id="postman-key" placeholder="...">
+                                    </div>
+                                    <div class="setting-item">
+                                        <label>Workspace ID</label>
+                                        <input type="text" id="postman-workspace" placeholder="...">
+                                    </div>
+                                    <button onclick="testPostmanConnection()" class="btn-primary">Test Connection</button>
+                                    <button onclick="savePostmanSettings()" class="btn-primary" style="margin-left: 10px;">Save Settings</button>
+                                    <div id="postman-status" style="margin-top: 10px; font-size: 12px;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Portal Settings -->
+                            <div class="settings-card">
+                                <div class="settings-header">
+                                    <span class="settings-icon">🎨</span>
+                                    <h3>Portal Settings</h3>
+                                </div>
+                                <div class="settings-content">
+                                    <div class="setting-item">
+                                        <label>
+                                            <input type="checkbox" id="dark-mode-toggle" checked>
+                                            Dark Mode (Default)
+                                        </label>
+                                    </div>
+                                    <div class="setting-item">
+                                        <label>Auto-refresh interval (seconds)</label>
+                                        <input type="number" id="refresh-interval" value="300" min="10" max="3600">
+                                    </div>
+                                    <button onclick="savePortalSettings()" class="btn-primary">Save Settings</button>
+                                </div>
+                            </div>
+
+                            <!-- Help & Documentation -->
+                            <div class="settings-card">
+                                <div class="settings-header">
+                                    <span class="settings-icon">📚</span>
+                                    <h3>Help & Documentation</h3>
+                                </div>
+                                <div class="settings-content">
+                                    <p>Read the setup guides to configure plugins:</p>
+                                    <ul style="margin: 10px 0; padding-left: 20px;">
+                                        <li><a href="/GITHUB_SETUP.md" style="color: var(--primary);">GitHub Integration Guide</a></li>
+                                        <li>AWS Integration Guide (coming soon)</li>
+                                        <li>Postman Integration Guide (coming soon)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
