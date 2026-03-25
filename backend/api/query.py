@@ -1,41 +1,41 @@
 from fastapi import APIRouter
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+from typing import List, Optional
+from ai.orchestrator import process_query, get_context_data
+from ai.llm_client import stream_response
+
+
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
 
 class QueryRequest(BaseModel):
     question: str
-
-
-async def process_query(q: str):
-    """Process AI query"""
-    # This will be enhanced with actual AI logic
-    return "Your infrastructure is running smoothly. All systems operational."
+    history: Optional[List[ChatMessage]] = []
 
 
 router = APIRouter(prefix="/api", tags=["query"])
 
 
-@router.post("/query")
-async def query_ai(request: QueryRequest):
-    """Process AI query about infrastructure"""
-    response = await process_query(request.question)
+@router.post("/ai/query")
+async def ai_query(request: QueryRequest):
+    """Non-streaming AI query endpoint"""
+    history = [m.model_dump() for m in request.history] if request.history else []
+    response = await process_query(request.question, history)
     return {"response": response}
 
 
-@router.post("/ai/query")
-async def ai_query(request: QueryRequest):
-    """AI query endpoint"""
-    question = request.question.lower()
-    
-    responses = {
-        "cost": "Your monthly AWS costs are $420, up 5% from last month. EC2 instances are your largest expense at $180/month.",
-        "deployment": "Your latest deployment (v2.1.3) completed successfully 2 minutes ago. All tests passed.",
-        "github": "You have 3 recent commits and 5 active workflows. Current build status: all passing.",
-        "postman": "API health is at 98.5%. 42 endpoints are being monitored across 4 collections.",
-        "default": "I can help you with infrastructure queries. Ask me about costs, deployments, API health, or resource status!"
-    }
-    
-    for key, response in responses.items():
-        if key in question:
-            return {"response": response}
-    
-    return {"response": responses["default"]}
+@router.post("/ai/stream")
+async def ai_stream(request: QueryRequest):
+    """Streaming AI query endpoint using Server-Sent Events"""
+    history = [m.model_dump() for m in request.history] if request.history else []
+    data = get_context_data(request.question)
+
+    def generate():
+        for token in stream_response(str(data), request.question, history):
+            yield f"data: {token}\n\n"
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(generate(), media_type="text/event-stream")

@@ -219,6 +219,59 @@ def get_repository_stats() -> Dict[str, Any]:
         return _get_mock_stats()
 
 
+def get_failed_workflow_logs() -> Dict[str, Any]:
+    """Fetch logs from the most recent failed workflow run for root cause analysis"""
+    try:
+        if not GITHUB_TOKEN or REPO == "owner/repo":
+            return {"error": "GitHub not configured"}
+
+        # Get recent runs and find the latest failed one
+        url = f"https://api.github.com/repos/{REPO}/actions/runs?per_page=10"
+        response = requests.get(url, headers=HEADERS, timeout=10)
+        if response.status_code != 200:
+            return {"error": f"GitHub API error: {response.status_code}"}
+
+        runs = response.json().get("workflow_runs", [])
+        failed_run = next((r for r in runs if r.get("conclusion") == "failure"), None)
+
+        if not failed_run:
+            return {"message": "No failed workflow runs found. All pipelines are healthy!"}
+
+        run_id = failed_run["id"]
+
+        # Get the jobs for this run
+        jobs_url = f"https://api.github.com/repos/{REPO}/actions/runs/{run_id}/jobs"
+        jobs_response = requests.get(jobs_url, headers=HEADERS, timeout=10)
+        if jobs_response.status_code != 200:
+            return {"error": "Could not fetch job details"}
+
+        jobs = jobs_response.json().get("jobs", [])
+        failed_steps = []
+        for job in jobs:
+            for step in job.get("steps", []):
+                if step.get("conclusion") == "failure":
+                    failed_steps.append({
+                        "job": job["name"],
+                        "step": step["name"],
+                        "conclusion": step["conclusion"]
+                    })
+
+        return {
+            "workflow_name": failed_run["name"],
+            "run_number": failed_run["run_number"],
+            "branch": failed_run["head_branch"],
+            "triggered_by": failed_run["event"],
+            "failed_at": failed_run["updated_at"],
+            "url": failed_run["html_url"],
+            "failed_steps": failed_steps,
+            "commit_message": failed_run.get("head_commit", {}).get("message", "Unknown"),
+            "commit_author": failed_run.get("head_commit", {}).get("author", {}).get("name", "Unknown")
+        }
+    except Exception as e:
+        print(f"Error fetching failed workflow logs: {e}")
+        return {"error": str(e)}
+
+
 def get_pull_requests(limit: int = 10, state: str = "all") -> List[Dict[str, Any]]:
     """Get pull requests"""
     try:

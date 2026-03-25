@@ -81,6 +81,19 @@ async function loadInitialData() {
     } catch (error) {
         console.error('Failed to load dashboard data:', error);
     }
+    loadAIInsights();
+}
+
+async function loadAIInsights() {
+    const insightsEl = document.getElementById('ai-insights-text');
+    try {
+        const response = await fetch('/api/ai/insights');
+        const data = await response.json();
+        insightsEl.innerHTML = marked.parse(data.insights);
+        insightsEl.style.color = 'var(--text-primary)';
+    } catch (error) {
+        insightsEl.textContent = 'Unable to load AI insights.';
+    }
 }
 
 function updateDashboardMetrics(data) {
@@ -282,7 +295,7 @@ async function loadGitHubBranches() {
     }
 }
 
-function switchGitHubTab(tabName) {
+function switchGitHubTab(tabName, event) {
     // Hide all tabs
     document.querySelectorAll('.github-tab-content').forEach(tab => {
         tab.classList.remove('active');
@@ -396,6 +409,8 @@ async function loadPostmanData() {
 }
 
 // ========== AI ASSISTANT ==========
+const chatHistory = [];
+
 async function sendAIMessage() {
     const input = document.getElementById('ai-input');
     const chatArea = document.getElementById('chat-area');
@@ -412,30 +427,57 @@ async function sendAIMessage() {
     input.value = '';
     chatArea.scrollTop = chatArea.scrollHeight;
 
+    // Add streaming bot message container
+    const botMessageDiv = document.createElement('div');
+    botMessageDiv.className = 'chat-message bot';
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'message-content';
+    contentDiv.textContent = 'Thinking...';
+    botMessageDiv.appendChild(contentDiv);
+    chatArea.appendChild(botMessageDiv);
+    chatArea.scrollTop = chatArea.scrollHeight;
+
+    let fullResponse = '';
+
     try {
-        // Send to AI Assistant endpoint
-        const response = await fetch('/api/ai/query', {
+        const response = await fetch('/api/ai/stream', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ question: message })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ question: message, history: chatHistory })
         });
 
-        const data = await response.json();
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        contentDiv.textContent = '';
 
-        // Add bot response
-        const botMessageDiv = document.createElement('div');
-        botMessageDiv.className = 'chat-message bot';
-        botMessageDiv.innerHTML = `<div class="message-content">${escapeHtml(data.response)}</div>`;
-        chatArea.appendChild(botMessageDiv);
-        chatArea.scrollTop = chatArea.scrollHeight;
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    const token = line.slice(6);
+                    if (token === '[DONE]') {
+                        contentDiv.innerHTML = marked.parse(fullResponse);
+                        break;
+                    }
+                    fullResponse += token;
+                    contentDiv.textContent = fullResponse;
+                    chatArea.scrollTop = chatArea.scrollHeight;
+                }
+            }
+        }
+
+        // Update history
+        chatHistory.push({ role: 'user', content: message });
+        chatHistory.push({ role: 'assistant', content: fullResponse });
+        if (chatHistory.length > 20) chatHistory.splice(0, 2);
+
     } catch (error) {
         console.error('Error sending AI message:', error);
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'chat-message bot';
-        errorDiv.innerHTML = `<div class="message-content">Sorry, I encountered an error. Please try again.</div>`;
-        chatArea.appendChild(errorDiv);
+        contentDiv.textContent = 'Sorry, I encountered an error. Please try again.';
     }
 }
 

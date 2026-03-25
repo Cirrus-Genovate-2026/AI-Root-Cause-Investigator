@@ -1,3 +1,7 @@
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
+sys.stderr.reconfigure(encoding='utf-8')
+
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
@@ -40,6 +44,31 @@ app.add_middleware(
 # ========== API ROUTES ==========
 app.include_router(query_router)
 app.include_router(plugins_router)
+
+# ========== AI INSIGHTS ENDPOINT ==========
+@app.get("/api/ai/insights")
+async def get_ai_insights():
+    """Generate a proactive AI summary of current infrastructure state"""
+    from integrations.github_connector import get_github_data, get_failed_workflow_logs
+    from ai.llm_client import generate_response
+
+    github_data = get_github_data()
+    failed = get_failed_workflow_logs()
+
+    context = f"GitHub Data: {github_data}\nFailed Workflow Info: {failed}"
+    question = (
+        "Give a short 2-3 sentence proactive summary of the current infrastructure state. "
+        "Mention the latest commit, whether the pipeline is healthy or has failures, "
+        "and one key action item if anything needs attention. Be direct and concise."
+    )
+
+    try:
+        summary = generate_response(context, question)
+    except Exception as e:
+        summary = "Unable to generate insights at this time."
+
+    return {"insights": summary}
+
 
 # ========== DASHBOARD ENDPOINT ==========
 @app.get("/api/dashboard")

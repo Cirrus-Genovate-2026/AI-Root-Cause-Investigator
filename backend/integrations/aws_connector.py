@@ -1,187 +1,152 @@
 import os
-import json
+import boto3
 from dotenv import load_dotenv
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List, Any
+from pathlib import Path
 
-load_dotenv()
+env_path = Path(__file__).parent.parent.parent / ".env"
+if not env_path.exists():
+    env_path = Path(__file__).parent.parent / ".env"
+load_dotenv(env_path)
 
 AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
 AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY_ID")
 AWS_SECRET_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 
-
-def get_aws_cost() -> Dict[str, Any]:
-    """Get AWS cost and billing information"""
-    return {
-        "source": "AWS",
-        "service": "Cost Explorer",
-        "monthly_cost": "$420",
-        "details": {
-            "cpu_usage": "65%",
-            "instances": 3
-        }
-    }
+CREDENTIALS = dict(
+    aws_access_key_id=AWS_ACCESS_KEY,
+    aws_secret_access_key=AWS_SECRET_KEY,
+    region_name=AWS_REGION
+)
 
 
-def get_aws_resources() -> List[Dict[str, Any]]:
-    """Get AWS resources overview"""
-    return [
-        {
-            "name": "web-server-prod",
-            "type": "EC2",
-            "status": "running",
-            "region": AWS_REGION,
-            "instance_type": "t3.large",
-            "state": "running"
-        },
-        {
-            "name": "api-database",
-            "type": "RDS",
-            "status": "available",
-            "region": AWS_REGION,
-            "engine": "PostgreSQL",
-            "state": "available"
-        },
-        {
-            "name": "app-storage",
-            "type": "S3",
-            "status": "active",
-            "region": AWS_REGION,
-            "storage_class": "STANDARD",
-            "state": "active"
-        },
-        {
-            "name": "cache-cluster",
-            "type": "ElastiCache",
-            "status": "available",
-            "region": AWS_REGION,
-            "engine": "Redis",
-            "state": "available"
-        }
-    ]
-
-
-def get_cost_analysis() -> Dict[str, Any]:
-    """Get detailed cost analysis"""
-    return {
-        "monthly": "$420",
-        "trend": "up",
-        "trend_percentage": 5,
-        "services": [
-            {"name": "EC2", "cost": "$180"},
-            {"name": "RDS", "cost": "$120"},
-            {"name": "S3", "cost": "$80"},
-            {"name": "Other", "cost": "$40"}
-        ],
-        "last_updated": datetime.now().isoformat()
-    }
+def _client(service: str, region: str = None):
+    return boto3.client(service, **{**CREDENTIALS, "region_name": region or AWS_REGION})
 
 
 def get_ec2_instances() -> List[Dict[str, Any]]:
-    """Get EC2 instances"""
-    return [
-        {
-            "id": "i-1234567890abcdef0",
-            "name": "web-server-prod",
-            "type": "t3.large",
-            "state": "running",
-            "cpu_utilization": 45,
-            "memory_utilization": 62,
-            "network_in": "1.2 GB",
-            "network_out": "0.8 GB",
-            "launched": "2024-01-15"
-        },
-        {
-            "id": "i-0987654321fedcba0",
-            "name": "api-server-prod",
-            "type": "t3.medium",
-            "state": "running",
-            "cpu_utilization": 28,
-            "memory_utilization": 45,
-            "network_in": "0.5 GB",
-            "network_out": "0.3 GB",
-            "launched": "2024-02-01"
-        },
-        {
-            "id": "i-abcdef1234567890a",
-            "name": "worker-node-1",
-            "type": "t3.small",
-            "state": "running",
-            "cpu_utilization": 12,
-            "memory_utilization": 28,
-            "network_in": "0.1 GB",
-            "network_out": "0.05 GB",
-            "launched": "2024-02-10"
-        }
-    ]
+    try:
+        ec2 = _client("ec2")
+        response = ec2.describe_instances(
+            Filters=[{"Name": "instance-state-name", "Values": ["running", "stopped", "pending"]}]
+        )
+        instances = []
+        for reservation in response.get("Reservations", []):
+            for inst in reservation.get("Instances", []):
+                name = next((t["Value"] for t in inst.get("Tags", []) if t["Key"] == "Name"), inst["InstanceId"])
+                instances.append({
+                    "id": inst["InstanceId"],
+                    "name": name,
+                    "type": inst["InstanceType"],
+                    "state": inst["State"]["Name"],
+                    "region": AWS_REGION,
+                    "launch_time": inst["LaunchTime"].isoformat()
+                })
+        return instances
+    except Exception as e:
+        print(f"EC2 error: {e}")
+        return []
 
 
 def get_rds_instances() -> List[Dict[str, Any]]:
-    """Get RDS database instances"""
-    return [
-        {
-            "id": "prod-database",
-            "engine": "PostgreSQL",
-            "version": "14.7",
-            "status": "available",
-            "allocated_storage": "100 GB",
-            "instance_class": "db.t3.large",
-            "multi_az": True,
-            "backup_retention": 30,
-            "cpu_utilization": 35,
-            "database_connections": 45
-        },
-        {
-            "id": "cache-database",
-            "engine": "PostgreSQL",
-            "version": "14.7",
-            "status": "available",
-            "allocated_storage": "50 GB",
-            "instance_class": "db.t3.medium",
-            "multi_az": False,
-            "backup_retention": 7,
-            "cpu_utilization": 12,
-            "database_connections": 8
-        }
-    ]
+    try:
+        rds = _client("rds")
+        response = rds.describe_db_instances()
+        instances = []
+        for db in response.get("DBInstances", []):
+            instances.append({
+                "id": db["DBInstanceIdentifier"],
+                "engine": f"{db['Engine']} {db['EngineVersion']}",
+                "status": db["DBInstanceStatus"],
+                "instance_class": db["DBInstanceClass"],
+                "multi_az": db["MultiAZ"],
+                "allocated_storage": f"{db['AllocatedStorage']} GB",
+                "region": AWS_REGION
+            })
+        return instances
+    except Exception as e:
+        print(f"RDS error: {e}")
+        return []
 
 
 def get_s3_buckets() -> List[Dict[str, Any]]:
-    """Get S3 buckets"""
-    return [
-        {
-            "name": "app-storage-prod",
-            "region": AWS_REGION,
-            "size": "45.3 GB",
-            "objects": 12458,
-            "encryption": "AES-256",
-            "versioning": "Enabled",
-            "created": "2023-06-15"
-        },
-        {
-            "name": "backups-archive",
-            "region": AWS_REGION,
-            "size": "256.7 GB",
-            "objects": 1024,
-            "encryption": "AES-256",
-            "versioning": "Disabled",
-            "created": "2023-09-01"
-        },
-        {
-            "name": "logs-storage",
-            "region": AWS_REGION,
-            "size": "12.1 GB",
-            "objects": 8732,
-            "encryption": "AES-256",
-            "versioning": "Disabled",
-            "created": "2024-01-01"
+    try:
+        s3 = _client("s3", region="us-east-1")
+        response = s3.list_buckets()
+        buckets = []
+        for bucket in response.get("Buckets", []):
+            buckets.append({
+                "name": bucket["Name"],
+                "created": bucket["CreationDate"].isoformat()
+            })
+        return buckets
+    except Exception as e:
+        print(f"S3 error: {e}")
+        return []
+
+
+def get_cost_analysis() -> Dict[str, Any]:
+    try:
+        ce = _client("ce", region="us-east-1")
+        end = datetime.today().strftime("%Y-%m-%d")
+        start = (datetime.today().replace(day=1)).strftime("%Y-%m-%d")
+
+        response = ce.get_cost_and_usage(
+            TimePeriod={"Start": start, "End": end},
+            Granularity="MONTHLY",
+            Metrics=["UnblendedCost"],
+            GroupBy=[{"Type": "DIMENSION", "Key": "SERVICE"}]
+        )
+
+        total = 0.0
+        services = []
+        for group in response["ResultsByTime"][0].get("Groups", []):
+            cost = float(group["Metrics"]["UnblendedCost"]["Amount"])
+            if cost > 0:
+                services.append({"name": group["Keys"][0], "cost": f"${cost:.2f}"})
+                total += cost
+
+        services.sort(key=lambda x: float(x["cost"][1:]), reverse=True)
+
+        return {
+            "monthly": f"${total:.2f}",
+            "services": services[:6],
+            "period": f"{start} to {end}",
+            "last_updated": datetime.now().isoformat()
         }
-    ]
+    except Exception as e:
+        print(f"Cost Explorer error: {e}")
+        return {"monthly": "N/A", "services": [], "error": str(e)}
+
+
+def get_aws_resources() -> List[Dict[str, Any]]:
+    resources = []
+    for inst in get_ec2_instances():
+        resources.append({"name": inst["name"], "type": "EC2", "status": inst["state"], "region": inst["region"]})
+    for db in get_rds_instances():
+        resources.append({"name": db["id"], "type": "RDS", "status": db["status"], "region": db["region"]})
+    for bucket in get_s3_buckets():
+        resources.append({"name": bucket["name"], "type": "S3", "status": "active", "region": "global"})
+    return resources
+
+
+def get_aws_cost() -> Dict[str, Any]:
+    costs = get_cost_analysis()
+    ec2_count = len(get_ec2_instances())
+    rds_count = len(get_rds_instances())
+    s3_count = len(get_s3_buckets())
+    return {
+        "source": "AWS",
+        "monthly_cost": costs.get("monthly", "N/A"),
+        "cost_by_service": costs.get("services", []),
+        "ec2_instances": ec2_count,
+        "rds_instances": rds_count,
+        "s3_buckets": s3_count
+    }
 
 
 def get_aws_data() -> Dict[str, Any]:
-    """Fetch comprehensive AWS data"""
     try:
         return {
             "source": "AWS",
