@@ -1,0 +1,125 @@
+# GitHub Pages Deployment Workflow
+# Deploys the PlatformIQ portal UI to GitHub Pages
+# Access: https://Cirrus-Genovate-2026.github.io/AI-Root-Cause-Investigator
+
+name: Deploy Portal to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  # Allow manual trigger from Actions tab
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js (for potential build steps)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Create static site structure
+        run: |
+          # Create a directory for the static site
+          mkdir -p _site
+          
+          # Copy frontend files to _site
+          cp backend/templates/index.html _site/index.html
+          cp -r backend/static _site/
+          
+          # Create a configuration file for API endpoint
+          cat > _site/config.js << 'EOF'
+          // PlatformIQ Portal Configuration
+          // Backend API URL - Configure this based on where your backend is running
+          const API_CONFIG = {
+            // For local development: http://localhost:8000
+            // For production, update this to your backend URL
+            BASE_URL: 'http://localhost:8000',
+            ENDPOINTS: {
+              dashboard: '/api/dashboard',
+              githubData: '/api/plugins/github/data',
+              githubCommits: '/api/plugins/github/commits',
+              githubWorkflows: '/api/plugins/github/workflows',
+              githubPRs: '/api/plugins/github/pull-requests',
+              githubIssues: '/api/plugins/github/issues',
+              githubBranches: '/api/plugins/github/branches',
+              githubStats: '/api/plugins/github/stats'
+            }
+          };
+          EOF
+          
+          # Create a .nojekyll file to bypass Jekyll processing
+          touch _site/.nojekyll
+          
+          # Create a README for the GitHub Pages site
+          cat > _site/README.md << 'EOF'
+          # PlatformIQ Portal - GitHub Pages Deployment
+          
+          This is the frontend UI for the PlatformIQ portal deployed on GitHub Pages.
+          
+          ## Configuration
+          To connect to the backend API, update the `BASE_URL` in `config.js`:
+          - Local development: `http://localhost:8000`
+          - Production backend: Update with your production backend URL
+          
+          ## Backend API
+          The frontend communicates with a FastAPI backend that provides:
+          - GitHub API integration
+          - AWS connector
+          - Postman integration
+          - AI query processing
+          
+          To run the backend locally:
+          ```bash
+          cd backend
+          pip install -r requirements.txt
+          python -m uvicorn main:app --reload --port 8000
+          ```
+          
+          ## Features
+          - Real-time GitHub data (commits, workflows, PRs, issues, branches)
+          - Organization-level insights
+          - Settings page for credential management
+          - Dark-themed Backstage-inspired UI
+          EOF
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '_site'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v3
+
+      - name: Deployment Summary
+        run: |
+          echo "✅ Deployment Complete!"
+          echo "📄 Portal URL: ${{ steps.deployment.outputs.page_url }}"
+          echo "Repository: https://github.com/Cirrus-Genovate-2026/AI-Root-Cause-Investigator"
